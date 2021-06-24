@@ -1,0 +1,5 @@
+<?php
+
+$lang = [
+    'spanish' => 'Español',
+];

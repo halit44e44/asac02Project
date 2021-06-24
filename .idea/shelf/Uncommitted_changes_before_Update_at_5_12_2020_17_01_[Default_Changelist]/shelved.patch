@@ -1,0 +1,2254 @@
+Index: app/backend/controllers/UploadController.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?php\r\n\r\n\r\nnamespace Yabasi\\Backend\\Controllers;\r\n\r\n\r\nuse Phalcon\\Security\\Random;\r\nuse PhpOffice\\PhpSpreadsheet\\Calculation\\Category;\r\nuse Svg\\Tag\\Image;\r\nuse Yabasi\\Cats;\r\nuse Yabasi\\Images;\r\nuse Yabasi\\Themecontent;\r\nuse Yabasi\\User;\r\n\r\nclass UploadController extends ControllerBase {\r\n\r\n    function permalink($str, $options = array()){\r\n        $str = mb_convert_encoding((string)$str, 'UTF-8', mb_list_encodings());\r\n\r\n        $defaults = array(\r\n          'delimiter' => '-',\r\n          'limit' => null,\r\n          'lowercase' => true,\r\n          'replacements' => array(),\r\n          'transliterate' => true\r\n        );\r\n\r\n        $options = array_merge($defaults, $options);\r\n\r\n        $char_map = array(\r\n          // Latin\r\n          'À' => 'A', 'Á' => 'A', 'Â' => 'A', 'Ã' => 'A', 'Ä' => 'A', 'Å' => 'A', 'Æ' => 'AE', 'Ç' => 'C',\r\n          'È' => 'E', 'É' => 'E', 'Ê' => 'E', 'Ë' => 'E', 'Ì' => 'I', 'Í' => 'I', 'Î' => 'I', 'Ï' => 'I',\r\n          'Ð' => 'D', 'Ñ' => 'N', 'Ò' => 'O', 'Ó' => 'O', 'Ô' => 'O', 'Õ' => 'O', 'Ö' => 'O', 'Ő' => 'O',\r\n          'Ø' => 'O', 'Ù' => 'U', 'Ú' => 'U', 'Û' => 'U', 'Ü' => 'U', 'Ű' => 'U', 'Ý' => 'Y', 'Þ' => 'TH',\r\n          'ß' => 'ss',\r\n          'à' => 'a', 'á' => 'a', 'â' => 'a', 'ã' => 'a', 'ä' => 'a', 'å' => 'a', 'æ' => 'ae', 'ç' => 'c',\r\n          'è' => 'e', 'é' => 'e', 'ê' => 'e', 'ë' => 'e', 'ì' => 'i', 'í' => 'i', 'î' => 'i', 'ï' => 'i',\r\n          'ð' => 'd', 'ñ' => 'n', 'ò' => 'o', 'ó' => 'o', 'ô' => 'o', 'õ' => 'o', 'ö' => 'o', 'ő' => 'o',\r\n          'ø' => 'o', 'ù' => 'u', 'ú' => 'u', 'û' => 'u', 'ü' => 'u', 'ű' => 'u', 'ý' => 'y', 'þ' => 'th',\r\n          'ÿ' => 'y',\r\n          // Latin symbols\r\n          '©' => '(c)',\r\n          // Greek\r\n          'Α' => 'A', 'Β' => 'B', 'Γ' => 'G', 'Δ' => 'D', 'Ε' => 'E', 'Ζ' => 'Z', 'Η' => 'H', 'Θ' => '8',\r\n          'Ι' => 'I', 'Κ' => 'K', 'Λ' => 'L', 'Μ' => 'M', 'Ν' => 'N', 'Ξ' => '3', 'Ο' => 'O', 'Π' => 'P',\r\n          'Ρ' => 'R', 'Σ' => 'S', 'Τ' => 'T', 'Υ' => 'Y', 'Φ' => 'F', 'Χ' => 'X', 'Ψ' => 'PS', 'Ω' => 'W',\r\n          'Ά' => 'A', 'Έ' => 'E', 'Ί' => 'I', 'Ό' => 'O', 'Ύ' => 'Y', 'Ή' => 'H', 'Ώ' => 'W', 'Ϊ' => 'I',\r\n          'Ϋ' => 'Y',\r\n          'α' => 'a', 'β' => 'b', 'γ' => 'g', 'δ' => 'd', 'ε' => 'e', 'ζ' => 'z', 'η' => 'h', 'θ' => '8',\r\n          'ι' => 'i', 'κ' => 'k', 'λ' => 'l', 'μ' => 'm', 'ν' => 'n', 'ξ' => '3', 'ο' => 'o', 'π' => 'p',\r\n          'ρ' => 'r', 'σ' => 's', 'τ' => 't', 'υ' => 'y', 'φ' => 'f', 'χ' => 'x', 'ψ' => 'ps', 'ω' => 'w',\r\n          'ά' => 'a', 'έ' => 'e', 'ί' => 'i', 'ό' => 'o', 'ύ' => 'y', 'ή' => 'h', 'ώ' => 'w', 'ς' => 's',\r\n          'ϊ' => 'i', 'ΰ' => 'y', 'ϋ' => 'y', 'ΐ' => 'i',\r\n          // Turkish\r\n          'Ş' => 'S', 'İ' => 'I', 'Ç' => 'C', 'Ü' => 'U', 'Ö' => 'O', 'Ğ' => 'G',\r\n          'ş' => 's', 'ı' => 'i', 'ç' => 'c', 'ü' => 'u', 'ö' => 'o', 'ğ' => 'g',\r\n          // Russian\r\n          'А' => 'A', 'Б' => 'B', 'В' => 'V', 'Г' => 'G', 'Д' => 'D', 'Е' => 'E', 'Ё' => 'Yo', 'Ж' => 'Zh',\r\n          'З' => 'Z', 'И' => 'I', 'Й' => 'J', 'К' => 'K', 'Л' => 'L', 'М' => 'M', 'Н' => 'N', 'О' => 'O',\r\n          'П' => 'P', 'Р' => 'R', 'С' => 'S', 'Т' => 'T', 'У' => 'U', 'Ф' => 'F', 'Х' => 'H', 'Ц' => 'C',\r\n          'Ч' => 'Ch', 'Ш' => 'Sh', 'Щ' => 'Sh', 'Ъ' => '', 'Ы' => 'Y', 'Ь' => '', 'Э' => 'E', 'Ю' => 'Yu',\r\n          'Я' => 'Ya',\r\n          'а' => 'a', 'б' => 'b', 'в' => 'v', 'г' => 'g', 'д' => 'd', 'е' => 'e', 'ё' => 'yo', 'ж' => 'zh',\r\n          'з' => 'z', 'и' => 'i', 'й' => 'j', 'к' => 'k', 'л' => 'l', 'м' => 'm', 'н' => 'n', 'о' => 'o',\r\n          'п' => 'p', 'р' => 'r', 'с' => 's', 'т' => 't', 'у' => 'u', 'ф' => 'f', 'х' => 'h', 'ц' => 'c',\r\n          'ч' => 'ch', 'ш' => 'sh', 'щ' => 'sh', 'ъ' => '', 'ы' => 'y', 'ь' => '', 'э' => 'e', 'ю' => 'yu',\r\n          'я' => 'ya',\r\n          // Ukrainian\r\n          'Є' => 'Ye', 'І' => 'I', 'Ї' => 'Yi', 'Ґ' => 'G',\r\n          'є' => 'ye', 'і' => 'i', 'ї' => 'yi', 'ґ' => 'g',\r\n          // Czech\r\n          'Č' => 'C', 'Ď' => 'D', 'Ě' => 'E', 'Ň' => 'N', 'Ř' => 'R', 'Š' => 'S', 'Ť' => 'T', 'Ů' => 'U',\r\n          'Ž' => 'Z',\r\n          'č' => 'c', 'ď' => 'd', 'ě' => 'e', 'ň' => 'n', 'ř' => 'r', 'š' => 's', 'ť' => 't', 'ů' => 'u',\r\n          'ž' => 'z',\r\n          // Polish\r\n          'Ą' => 'A', 'Ć' => 'C', 'Ę' => 'e', 'Ł' => 'L', 'Ń' => 'N', 'Ó' => 'o', 'Ś' => 'S', 'Ź' => 'Z',\r\n          'Ż' => 'Z',\r\n          'ą' => 'a', 'ć' => 'c', 'ę' => 'e', 'ł' => 'l', 'ń' => 'n', 'ó' => 'o', 'ś' => 's', 'ź' => 'z',\r\n          'ż' => 'z',\r\n          // Latvian\r\n          'Ā' => 'A', 'Č' => 'C', 'Ē' => 'E', 'Ģ' => 'G', 'Ī' => 'i', 'Ķ' => 'k', 'Ļ' => 'L', 'Ņ' => 'N',\r\n          'Š' => 'S', 'Ū' => 'u', 'Ž' => 'Z',\r\n          'ā' => 'a', 'č' => 'c', 'ē' => 'e', 'ģ' => 'g', 'ī' => 'i', 'ķ' => 'k', 'ļ' => 'l', 'ņ' => 'n',\r\n          'š' => 's', 'ū' => 'u', 'ž' => 'z'\r\n        );\r\n  \r\n        $str = preg_replace(array_keys($options['replacements']), $options['replacements'], $str);\r\n\r\n        if ($options['transliterate']){\r\n          $str = str_replace(array_keys($char_map), $char_map, $str);\r\n        }\r\n\r\n        $str = preg_replace('/[^\\p{L}\\p{Nd}]+/u', $options['delimiter'], $str);\r\n        $str = preg_replace('/(' . preg_quote($options['delimiter'], '/') . '){2,}/', '$1', $str);\r\n        $str = mb_substr($str, 0, ($options['limit'] ? $options['limit'] : mb_strlen($str, 'UTF-8')), 'UTF-8');\r\n        $str = trim($str, $options['delimiter']);\r\n        return $options['lowercase'] ? mb_strtolower($str, 'UTF-8') : $str;\r\n    }\r\n  \r\n\r\n    public function indexAction() {\r\n        $this->view->disable();\r\n        header('Content-Type: application/json');\r\n        echo json_encode(array('code' => 404, 'message' => 'Missing parameter!'));\r\n        die();\r\n    }\r\n\r\n    public function setAction() {\r\n\r\n        $this->view->disable();\r\n\r\n        $id = $this->request->getPost('id');\r\n        $table = $this->request->getPost('table');\r\n\r\n        if ($this->request->hasFiles()) {\r\n            $location = BASE_PATH.'/public/media/'.$table.'/';\r\n        }\r\n\r\n        if (!$id) {\r\n            $id = 0;\r\n        }\r\n        $user=User::findFirst($this->getAuthId());\r\n        if ($user->getGroupId()==3){\r\n\r\n        }else{\r\n            foreach ($this->request->getUploadedFiles() as $file) {\r\n                $ext  = $file->getExtension();\r\n                //$name = self::getRandomFileName().'.'.$ext;\r\n                $name = $this->getFileName($id, $table).'.'.$ext;\r\n\r\n                $accept_ext = array('jpg', 'jpeg', 'png', 'gif');\r\n\r\n                if ( in_array($ext, $accept_ext) ) {\r\n                    if (is_numeric($id)) {\r\n                        if ($file->moveTo( $location . $name )) {\r\n                            $insert = new Images();\r\n                            $insert->setContentId($id);\r\n                            $insert->setMetaKey($table);\r\n                            $insert->setMetaValue($name);\r\n                            $insert->setShowcase(0);\r\n                            $insert->setRow(0);\r\n                            $insert->setCreatedAt(self::getnow());\r\n                            $insert->setUpdatedAt(self::getnow());\r\n                            $insert->setStatus(1);\r\n                            $insert->save();\r\n\r\n                            if ($table == 'theme_content') {\r\n                                $update = Themecontent::findFirst('name=\"logo\"');\r\n                                if ($update) {\r\n                                    $update->setValue($name);\r\n                                    $update->setUpdatedAt(self::getnow());\r\n                                    $update->update();\r\n                                } else {\r\n                                    $insert = new Themecontent();\r\n                                    $insert->setName('logo');\r\n                                    $insert->setValue($name);\r\n                                    $insert->setThemeId($id);\r\n                                    $insert->setCreatedAt(self::getnow());\r\n                                    $insert->setUpdatedAt(self::getnow());\r\n                                    $insert->setStatus(1);\r\n                                }\r\n\r\n                            }\r\n                        }\r\n                    }\r\n                }\r\n            }\r\n\r\n\r\n        }\r\n        $images = Images::find('content_id = '. $id. ' and meta_key = \"'. $table.'\"');\r\n        if ($images) {\r\n            $returned = '';\r\n\r\n            foreach ($images as $image) {\r\n                $checked  = '';\r\n                if ($image->getShowcase() == 1) {\r\n                    $checked = 'checked=\"true\"';\r\n                }\r\n\r\n                $ext = explode(\".\", $image->getMetaValue());\r\n                $ext = $ext[1];\r\n\r\n                $returned .= '<div class=\"card card-custom gutter-b\" id=\"image_'.$image->getId().'\"><i class=\"fa fa-check cardi dn\" id=\"cardi_'.$image->getId().'\"></i> <div class=\"card-body\"> <div class=\"d-flex\"> <div class=\"flex-shrink-0 mr-7\"> <div class=\"symbol symbol-50 symbol-lg-120\"> <img src=\"media/'.$table.'/'.$image->getMetaValue().'\" style=\"object-fit: cover;\" /> </div> </div> <div class=\"flex-grow-1\"> <form id=\"form_'.$image->getId().'\"> <input type=\"hidden\" class=\"lastid\" name=\"id\" value=\"'.$image->getId().'\" /> <input type=\"hidden\" name=\"extension\" value=\"'.$ext.'\" /> <div class=\"d-flex align-items-center flex-wrap justify-content-between row\"> <div class=\"col-md-10\"> <div class=\"form-group\"> <label>Dosya ismi</label> <input type=\"text\" class=\"form-control\" name=\"name\" value=\"'.preg_replace('/\\\\.[^.\\\\s]{3,4}$/', '', $image->getMetaValue()).'\"/> </div> </div> <div class=\"col-md-2\"> <div class=\"form-group\"> <label>Sıra</label> <input type=\"number\" class=\"form-control\" name=\"row\" value=\"'.$image->getRow().'\" min=\"1\"/> </div> </div> <div class=\"col-md-6\"> <label class=\"checkbox\"> <input type=\"checkbox\" name=\"showcase\" value=\"1\" data-image=\"media/'.$table.'/'.$image->getMetaValue().'\" '.$checked.'> <span class=\"mr-3\"></span>Ön tanımlı görsel</label> </div> <div class=\"col-md-6 text-right\"> <button type=\"button\" onclick=\"removeImage(this)\" data-id=\"'.$image->getId().'\" class=\"btn btn-light-danger mr-2\">Kaldır</button> <button type=\"button\" class=\"btn btn-light-primary mr-2\" data-id=\"'.$image->getId().'\" onclick=\"updateImage(this)\">Kaydet</button> </div> </div> </form> </div> </div> </div> </div>';\r\n            }\r\n        }\r\n        echo $returned;\r\n\r\n\r\n    }\r\n\r\n    public function updateAction() {\r\n        $this->view->disable();\r\n        $user=User::findFirst($this->getAuthId());\r\n        if ($user->getGroupId()==3){\r\n\r\n        }else{\r\n            if ($this->request->isPost()) {\r\n                if ($this->request->isAjax()) {\r\n\r\n                    $name      = $this->request->getPost('name');\r\n                    $row       = $this->request->getPost('row');\r\n                    $showcase  = $this->request->getPost('showcase');\r\n                    $id        = $this->request->getPost('id');\r\n                    $extension = $this->request->getPost('extension');\r\n\r\n                    if (is_numeric($id)) {\r\n                        $update = Images::findFirst($id);\r\n\r\n                        if ($update) {\r\n\r\n                            $oldFileName = $update->getMetaValue();\r\n\r\n                            $namewithExt = $name.'.'.$extension;\r\n\r\n                            $check = Images::findFirst('id!='.$id.' and meta_value=\"'.$namewithExt.'\"');\r\n                            if ($check) {\r\n                                echo '{\"status\": \"same\", \"message\": \"Düzenlemek istediğiniz isimde bir resim zaten var.\"}';\r\n                                exit;\r\n                            }\r\n\r\n                            if ($name != $oldFileName) {\r\n                                $oldFileDir = BASE_PATH.'/public/media/'.$update->getMetaKey().'/'.$oldFileName;\r\n                                $newFileDir = BASE_PATH.'/public/media/'.$update->getMetaKey().'/'.$this->permalink($name).'.'.$extension;\r\n                                $fileName = $oldFileName;\r\n\r\n                                if(!file_exists($oldFileDir)) {\r\n                                    echo '{\"status\": \"failed\", \"message\": \"Düzenlemek istediğiniz resim bulunamadı.\"}';\r\n                                    exit;\r\n                                }\r\n\r\n                                if(rename($oldFileDir, $newFileDir)) {\r\n                                    $fileName = $this->permalink($name);\r\n                                } else {\r\n                                    echo '{\"status\": \"failed\", \"message\": \"Düzenlemek istediğiniz isimde bir resim zaten var.\"}';\r\n                                    exit;\r\n                                }\r\n\r\n                                $update->setMetaValue($fileName.'.'.$extension);\r\n                            }\r\n\r\n\r\n                            $showCheck = 0;\r\n                            if(isset($showcase)) {\r\n                                $showCheck = 1;\r\n                                $meta_key=$update->getMetaKey();\r\n                                $images=Images::findFirst(\"meta_key=\".\"'$meta_key'\".\" and content_id=\".$update->getContentId().\" and showcase=1\");\r\n                                if ($images){\r\n                                    $images->setShowcase(0);\r\n                                    $images->save();\r\n                                }\r\n\r\n                            }\r\n                            $update->setShowcase($showCheck);\r\n\r\n\r\n                            if($row != $update->getRow()){\r\n                                $update->setRow($row);\r\n                            }\r\n\r\n                            $update->setUpdatedAt(self::getnow());\r\n                            $update->update();\r\n                            echo '{\"status\": \"success\"}';\r\n                        } else {\r\n                            echo '{\"status\": \"failed\", \"message\": \"Dosya bulunamadı.\"}';\r\n                        }\r\n\r\n                    }\r\n                }\r\n\r\n            }\r\n        }\r\n\r\n    }\r\n\r\n    public function removeAction() {\r\n        $this->view->disable();\r\n        $user=User::findFirst($this->getAuthId());\r\n        if ($user->getGroupId()==3){\r\n\r\n        }else{\r\n            if ($this->request->isGet()) {\r\n                if ($this->request->isAjax()) {\r\n\r\n                    $id = $this->request->getQuery('id');\r\n                    $table = $this->request->getQuery('table');\r\n\r\n                    if (is_numeric($id)) {\r\n                        $image = Images::findFirst($id);\r\n\r\n                        if ($image) {\r\n                            @unlink(BASE_PATH.'/public/media/'.$image->getMetaKey().'/'.$image->getMetaValue());\r\n                            if ($image->delete()) {\r\n                                echo '{\"status\": \"success\"}';\r\n                            }else {\r\n                                echo '{\"status\": \"failed\", \"message\": \"Resim veri tabanından silinemedi.\"}';\r\n                            }\r\n                        }else {\r\n                            echo '{\"status\": \"failed\", \"message\": \"Veri tabanında kayıt bulunamadı.\"}';\r\n                        }\r\n                    }\r\n                }\r\n            }\r\n        }\r\n\r\n    }\r\n\r\n    public function getFileName($id = false, $table = false) {\r\n        if (is_numeric($id) && $table) {\r\n            if ($table == 'category') {\r\n                $table = 'cats';\r\n            } else if ($table == 'theme_content/footer') {\r\n                $table = 'themecontent';\r\n            } else if ($table == 'theme_content/modal') {\r\n                $table = 'themecontent';\r\n            } else if ($table == 'theme_content/logo') {\r\n                $table = 'themecontent';\r\n            }\r\n            $item = self::db($table)::findFirst($id);\r\n            if ($item) {\r\n                $rand = new Random();\r\n                $rand = $rand->number(99999999);\r\n                $name = $this->createSlug($item->getName());\r\n                return $name.\"-\".$rand;\r\n            }\r\n        }\r\n    }\r\n\r\n    public function createSlug($str, $delimiter = '-'){\r\n        $unwanted_array = ['ś'=>'s', 'ą' => 'a', 'ć' => 'c', 'ç' => 'c', 'ę' => 'e', 'ł' => 'l', 'ń' => 'n', 'ó' => 'o', 'ź' => 'z', 'ż' => 'z', 'Ś'=>'s', 'Ą' => 'a', 'Ć' => 'c', 'Ç' => 'c', 'Ę' => 'e', 'Ł' => 'l', 'Ń' => 'n', 'Ó' => 'o', 'Ź' => 'z', 'Ż' => 'z'];\r\n        $str = strtr( $str, $unwanted_array );\r\n        $slug = strtolower(trim(preg_replace('/[\\s-]+/', $delimiter, preg_replace('/[^A-Za-z0-9-]+/', $delimiter, preg_replace('/[&]/', 'and', preg_replace('/[\\']/', '', iconv('UTF-8', 'ASCII//TRANSLIT', $str))))), $delimiter));\r\n        return $slug;\r\n    }\r\n\r\n}\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/backend/controllers/UploadController.php	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
++++ app/backend/controllers/UploadController.php	(date 1607176774300)
+@@ -4,6 +4,7 @@
+ namespace Yabasi\Backend\Controllers;
+ 
+ 
++use Gumlet\ImageResize;
+ use Phalcon\Security\Random;
+ use PhpOffice\PhpSpreadsheet\Calculation\Category;
+ use Svg\Tag\Image;
+@@ -335,4 +336,14 @@
+         return $slug;
+     }
+ 
++
++
++    public function ImageRevizeAction () {
++        $this->view->disable();
++        require '../vendor/autoload.php';
++        $image = new ImageResize('C:\xampp\htdocs\oyos\public\media\nouser.jpg');
++        $image->scale(50);
++        $image->save('image2.jpg');
++    }
++
+ }
+Index: vendor/gumlet/php-image-resize/composer.json
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- vendor/gumlet/php-image-resize/composer.json	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
++++ vendor/gumlet/php-image-resize/composer.json	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
+@@ -1,45 +0,0 @@
+-{
+-    "name": "gumlet/php-image-resize",
+-    "description": "PHP class to re-size and scale images",
+-    "keywords": ["php", "image", "resize", "scale"],
+-    "type": "library",
+-    "homepage": "https://github.com/gumlet/php-image-resize",
+-    "license": "MIT",
+-    "authors": [
+-    {
+-        "name": "Aditya Patadia",
+-        "homepage": "http://aditya.patadia.org/"
+-    }],
+-    "require":
+-    {
+-        "php": ">=5.5.0",
+-        "ext-gd": "*",
+-        "ext-fileinfo": "*"
+-    },
+-    "suggest":
+-    {
+-        "ext-exif": "Auto-rotate jpeg files"
+-    },
+-    "autoload":
+-    {
+-        "psr-4":
+-        {
+-            "Gumlet\\": "lib/"
+-        }
+-    },
+-    "autoload-dev":
+-    {
+-        "psr-4":
+-        {
+-            "Gumlet\\": "test/"
+-        }
+-    },
+-    "require-dev":
+-    {
+-        "phpunit/phpunit": "^4.8",
+-        "apigen/apigen": "^4.1",
+-        "php-coveralls/php-coveralls": "^2.1",
+-        "ext-exif": "*",
+-        "ext-gd": "*"
+-    }
+-}
+Index: vendor/gumlet/php-image-resize/.gitignore
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- vendor/gumlet/php-image-resize/.gitignore	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
++++ vendor/gumlet/php-image-resize/.gitignore	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
+@@ -1,3 +0,0 @@
+-.idea
+-vendor
+-composer.lock
+\ No newline at end of file
+Index: vendor/gumlet/php-image-resize/README.md
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- vendor/gumlet/php-image-resize/README.md	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
++++ vendor/gumlet/php-image-resize/README.md	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
+@@ -1,381 +0,0 @@
+-php-image-resize
+-================
+-
+-PHP library to resize, scale and crop images.
+-
+-![Build Status](https://github.com/gumlet/php-image-resize/workflows/PHP%20CI/badge.svg) [![Latest Stable Version](https://poser.pugx.org/gumlet/php-image-resize/v/stable)](https://packagist.org/packages/gumlet/php-image-resize) [![Monthly Downloads](https://poser.pugx.org/gumlet/php-image-resize/d/monthly)](https://packagist.org/packages/gumlet/php-image-resize) [![Coverage Status](https://coveralls.io/repos/github/gumlet/php-image-resize/badge.svg?branch=master)](https://coveralls.io/github/gumlet/php-image-resize?branch=master)
+-
+-Cloud Solution
+----------------
+-
+-If you don't want to crop, resize and store images on your server, <a href="https://www.gumlet.com" target="_blank">Gumlet.com</a> is a **free** service which can process images in real-time and serve worldwide through CDN.
+-
+-------------------
+-
+-Setup
+------
+-
+-This package is available through Packagist with the vendor and package identifier the same as this repo.
+-
+-If using [Composer](https://getcomposer.org/), in your `composer.json` file add:
+-
+-```json
+-{
+-    "require": {
+-        "gumlet/php-image-resize": "1.9.*"
+-    }
+-}
+-```
+-
+-If you are still using PHP 5.3, please install version ```1.7.0``` and if you are using PHP 5.4, please install version ```1.8.0``` of this library.
+-
+-WebP support is added with PHP `5.6.0` and current version of library supports that. If you are facing issues, please use `1.9.2` version of this library.
+-
+-Otherwise:
+-
+-```php
+-include '/path/to/ImageResize.php';
+-```
+-
+-Because this class uses namespacing, when instantiating the object, you need to either use the fully qualified namespace:
+-
+-```php
+-$image = new \Gumlet\ImageResize();
+-```
+-
+-Or alias it:
+-
+-```php
+-
+-use \Gumlet\ImageResize;
+-
+-$image = new ImageResize();
+-```
+-
+-> Note: This library uses GD class which do not support resizing animated gif files
+-
+-------------------
+-
+-Resize
+-------
+-
+-To scale an image, in this case to half it's size (scaling is percentage based):
+-
+-```php
+-$image = new ImageResize('image.jpg');
+-$image->scale(50);
+-$image->save('image2.jpg')
+-```
+-
+-To resize an image according to one dimension (keeping aspect ratio):
+-
+-```php
+-$image = new ImageResize('image.jpg');
+-$image->resizeToHeight(500);
+-$image->save('image2.jpg');
+-
+-$image = new ImageResize('image.jpg');
+-$image->resizeToWidth(300);
+-$image->save('image2.jpg');
+-```
+-
+-To resize an image according to a given measure regardingless its orientation (keeping aspect ratio):
+-
+-```php
+-$image = new ImageResize('image.jpg');
+-$image->resizeToLongSide(500);
+-$image->save('image2.jpg');
+-
+-$image = new ImageResize('image.jpg');
+-$image->resizeToShortSide(300);
+-$image->save('image2.jpg');
+-```
+-
+-To resize an image to best fit a given set of dimensions (keeping aspet ratio):
+-```php
+-$image = new ImageResize('image.jpg');
+-$image->resizeToBestFit(500, 300);
+-$image->save('image2.jpg');
+-```
+-
+-All resize functions have ```$allow_enlarge``` option which is set to false by default.
+-You can enable by passing ```true``` to any resize function:
+-```php
+-$image = new ImageResize('image.jpg');
+-$image->resize(500, 300, $allow_enlarge = True);
+-$image->save('image2.jpg');
+-```
+-
+-If you are happy to handle aspect ratios yourself, you can resize directly:
+-
+-```php
+-$image = new ImageResize('image.jpg');
+-$image->resize(800, 600);
+-$image->save('image2.jpg');
+-```
+-
+-This will cause your image to skew if you do not use the same width/height ratio as the source image.
+-
+-Crop
+-----
+-
+-To to crop an image:
+-
+-```php
+-$image = new ImageResize('image.jpg');
+-$image->crop(200, 200);
+-$image->save('image2.jpg');
+-```
+-
+-This will scale the image to as close as it can to the passed dimensions, and then crop and center the rest.
+-
+-In the case of the example above, an image of 400px &times; 600px will be resized down to 200px &times; 300px, and then 50px will be taken off the top and bottom, leaving you with 200px &times; 200px.
+-
+-Crop modes:
+-
+-Few crop mode options are available in order for you to choose how you want to handle the eventual exceeding width or height after resizing down your image.
+-The default crop mode used is the `CROPCENTER`.
+-As a result those pieces of code are equivalent:
+-
+-```php
+-$image = new ImageResize('image.jpg');
+-$image->crop(200, 200);
+-$image->save('image2.jpg');
+-```
+-
+-```php
+-$image = new ImageResize('image.jpg');
+-$image->crop(200, 200, true, ImageResize::CROPCENTER);
+-$image->save('image2.jpg');
+-```
+-
+-In the case you have an image of 400px &times; 600px and you want to crop it to 200px &times; 200px the image will be resized down to 200px &times; 300px, then you can indicate how you want to handle those 100px exceeding passing the value of the crop mode you want to use.
+-
+-For instance passing the crop mode `CROPTOP` will result as 100px taken off the bottom leaving you with 200px &times; 200px.
+-
+-
+-```php
+-$image = new ImageResize('image.jpg');
+-$image->crop(200, 200, true, ImageResize::CROPTOP);
+-$image->save('image2.jpg');
+-```
+-
+-On the contrary passing the crop mode `CROPBOTTOM` will result as 100px taken off the top leaving you with 200px &times; 200px.
+-
+-```php
+-$image = new ImageResize('image.jpg');
+-$image->crop(200, 200, true, ImageResize::CROPBOTTOM);
+-$image->save('image2.jpg');
+-```
+-
+-Freecrop:
+-
+-There is also a way to define custom crop position.
+-You can define $x and $y in ```freecrop``` method:
+-
+-```php
+-$image = new ImageResize('image.jpg');
+-$image->freecrop(200, 200, $x =  20, $y = 20);
+-$image->save('image2.jpg');
+-```
+-
+-Loading and saving images from string
+--------------------------------------
+-
+-To load an image from a string:
+-
+-```php
+-$image = ImageResize::createFromString(base64_decode('R0lGODlhAQABAIAAAAQCBP///yH5BAEAAAEALAAAAAABAAEAAAICRAEAOw=='));
+-$image->scale(50);
+-$image->save('image.jpg');
+-```
+-
+-You can also return the result as a string:
+-
+-```php
+-$image = ImageResize::createFromString(base64_decode('R0lGODlhAQABAIAAAAQCBP///yH5BAEAAAEALAAAAAABAAEAAAICRAEAOw=='));
+-$image->scale(50);
+-echo $image->getImageAsString();
+-```
+-
+-Magic `__toString()` is also supported:
+-
+-```php
+-$image = ImageResize::createFromString(base64_decode('R0lGODlhAQABAIAAAAQCBP///yH5BAEAAAEALAAAAAABAAEAAAICRAEAOw=='));
+-$image->resize(10, 10);
+-echo (string)$image;
+-```
+-
+-Displaying
+-----------
+-
+-As seen above, you can call `$image->save('image.jpg');`
+-
+-To render the image directly into the browser, you can call `$image->output()`;
+-
+-Image Types
+------------
+-
+-When saving to disk or outputting into the browser, the script assumes the same output type as input.
+-
+-If you would like to save/output in a different image type, you need to pass a (supported) PHP [`IMAGETYPE_`* constant](http://www.php.net/manual/en/image.constants.php):
+-
+-- `IMAGETYPE_GIF`
+-- `IMAGETYPE_JPEG`
+-- `IMAGETYPE_PNG`
+-
+-This allows you to save in a different type to the source:
+-
+-```php
+-$image = new ImageResize('image.jpg');
+-$image->resize(800, 600);
+-$image->save('image.png', IMAGETYPE_PNG);
+-```
+-
+-Quality
+--------
+-
+-The properties `$quality_jpg` and `$quality_png` are available for you to configure:
+-
+-```php
+-$image = new ImageResize('image.jpg');
+-$image->quality_jpg = 100;
+-$image->resize(800, 600);
+-$image->save('image2.jpg');
+-```
+-
+-By default they are set to 85 and 6 respectively. See the manual entries for [`imagejpeg()`](http://www.php.net/manual/en/function.imagejpeg.php) and [`imagepng()`](http://www.php.net/manual/en/function.imagepng.php) for more info.
+-
+-You can also pass the quality directly to the `save()`, `output()` and `getImageAsString()` methods:
+-
+-```php
+-$image = new ImageResize('image.jpg');
+-$image->crop(200, 200);
+-$image->save('image2.jpg', null, 100);
+-
+-$image = new ImageResize('image.jpg');
+-$image->resizeToWidth(300);
+-$image->output(IMAGETYPE_PNG, 4);
+-
+-$image = new ImageResize('image.jpg');
+-$image->scale(50);
+-$result = $image->getImageAsString(IMAGETYPE_PNG, 4);
+-```
+-
+-We're passing `null` for the image type in the example above to skip over it and provide the quality. In this case, the image type is assumed to be the same as the input.
+-
+-Interlacing
+------------
+-
+-By default, [image interlacing](http://php.net/manual/en/function.imageinterlace.php) is turned on. It can be disabled by setting `$interlace` to `0`:
+-
+-```php
+-$image = new ImageResize('image.jpg');
+-$image->scale(50);
+-$image->interlace = 0;
+-$image->save('image2.jpg');
+-```
+-
+-Chaining
+---------
+-
+-When performing operations, the original image is retained, so that you can chain operations without excessive destruction.
+-
+-This is useful for creating multiple sizes:
+-
+-```php
+-$image = new ImageResize('image.jpg');
+-$image
+-    ->scale(50)
+-    ->save('image2.jpg')
+-
+-    ->resizeToWidth(300)
+-    ->save('image3.jpg')
+-
+-    ->crop(100, 100)
+-    ->save('image4.jpg')
+-;
+-```
+-
+-Exceptions
+---------
+-
+-ImageResize throws ImageResizeException for it's own for errors. You can catch that or catch the general \Exception which it's extending.
+-
+-It is not to be expected, but should anything go horribly wrong mid way then notice or warning Errors could be shown from the PHP GD and Image Functions (http://php.net/manual/en/ref.image.php)
+-
+-```php
+-try{
+-    $image = new ImageResize(null);
+-    echo "This line will not be printed";
+-} catch (ImageResizeException $e) {
+-    echo "Something went wrong" . $e->getMessage();
+-}
+-```
+-
+-Filters
+---------
+-
+-You can apply special effects for new image like blur or add banner.
+-
+-```php
+-$image = new ImageResize('image.jpg');
+-
+-// Add blure
+-$image->addFilter(function ($imageDesc) {
+-    imagefilter($imageDesc, IMG_FILTER_GAUSSIAN_BLUR);
+-});
+-
+-// Add banner on bottom left corner
+-$image18Plus = 'banner.png'
+-$image->addFilter(function ($imageDesc) use ($image18Plus) {
+-    $logo = imagecreatefrompng($image18Plus);
+-    $logo_width = imagesx($logo);
+-    $logo_height = imagesy($logo);
+-    $image_width = imagesx($imageDesc);
+-    $image_height = imagesy($imageDesc);
+-    $image_x = $image_width - $logo_width - 10;
+-    $image_y = $image_height - $logo_height - 10;
+-    imagecopy($imageDesc, $logo, $image_x, $image_y, 0, 0, $logo_width, $logo_height);
+-});
+-
+-```
+-
+-Flip
+---------
+-
+-Flips an image using a given mode and this method is only for PHP version 5.4.
+-
+-```php
+-$flip = new ImageResize('image.png');
+-$image = imagecreatetruecolor(200, 100);
+-
+-$flip->imageFlip($image, 0);
+-
+-```
+-
+-Both functions will be used in the order in which they were added.
+-
+-Gamma color correction
+---------
+-
+-You can disable the gamma color correction enabled by default.
+-
+-```php
+-$image = new ImageResize('image.png');
+-$image->gamma(false);
+-```
+-
+-API Doc
+--------
+-
+-https://gumlet.github.io/php-image-resize/index.html
+-
+-------------------
+-
+-Maintainer
+-----------
+-
+-This library is maintained by <a href="https://www.gumlet.com" target="_blank">Gumlet.com</a>
+-
+-[<img src="https://www.gumlet.com/public/img/logo.png" width="300px">](https://www.gumlet.com)
+Index: vendor/gumlet/php-image-resize/.github/workflows/php-testing.yml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- vendor/gumlet/php-image-resize/.github/workflows/php-testing.yml	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
++++ vendor/gumlet/php-image-resize/.github/workflows/php-testing.yml	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
+@@ -1,32 +0,0 @@
+-name: PHP CI
+-
+-on: ["push", "pull_request"]
+-
+-jobs:
+-  run:
+-    runs-on: ${{ matrix.operating-system }}
+-    strategy:
+-      fail-fast: false
+-      matrix:
+-        operating-system: [ubuntu-18.04]
+-        php-versions: ['5.6', '7.0', '7.1', '7.2', '7.3', '7.4']
+-    name: PHP ${{ matrix.php-versions }} Test on ${{ matrix.operating-system }}
+-    steps:
+-    - name: Checkout
+-      uses: actions/checkout@v2
+-
+-    - name: Setup PHP
+-      uses: shivammathur/setup-php@v2
+-      with:
+-        php-version: ${{ matrix.php-versions }}
+-        extensions: gd, xdebug, fileinfo
+-        coverage: xdebug
+-        tools: php-cs-fixer, phpunit
+-
+-    - name: Composer Install
+-      run:  composer install --no-ansi --no-interaction --no-scripts --no-suggest --no-progress --prefer-dist
+-
+-    - name: Running Tests
+-      run: |
+-        mkdir -p build/logs
+-        ./vendor/bin/phpunit
+Index: vendor/gumlet/php-image-resize/lib/ImageResizeException.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- vendor/gumlet/php-image-resize/lib/ImageResizeException.php	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
++++ vendor/gumlet/php-image-resize/lib/ImageResizeException.php	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
+@@ -1,10 +0,0 @@
+-<?php
+-
+-namespace Gumlet;
+-
+-/**
+- * PHP Exception used in the ImageResize class
+- */
+-class ImageResizeException extends \Exception
+-{
+-}
+Index: vendor/gumlet/php-image-resize/test/ImageResizeTest.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- vendor/gumlet/php-image-resize/test/ImageResizeTest.php	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
++++ vendor/gumlet/php-image-resize/test/ImageResizeTest.php	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
+@@ -1,545 +0,0 @@
+-<?php
+-
+-use \Gumlet\ImageResize;
+-use \Gumlet\ImageResizeException;
+-use \PHPUnit\Framework\TestCase;
+-
+-class ImageResizeTest extends TestCase
+-{
+-
+-    private $image_types = array(
+-        'gif',
+-        'jpeg',
+-        'png'
+-    );
+-
+-    private $unsupported_image = 'Qk08AAAAAAAAADYAAAAoAAAAAQAAAAEAAAABABAAAAAAAAYAAAASCwAAEgsAAAAAAAAAAAAA/38AAAAA';
+-    private $image_string = 'R0lGODlhAQABAIAAAAQCBP///yH5BAEAAAEALAAAAAABAAEAAAICRAEAOw==';
+-    private $data_url = 'data:image/gif;base64,R0lGODlhAQABAIAAAAQCBP///yH5BAEAAAEALAAAAAABAAEAAAICRAEAOw==';
+-
+-
+-    /**
+-     * Loading tests
+-     */
+-
+-    public function testLoadGif()
+-    {
+-        $image = $this->createImage(1, 1, 'gif');
+-        $resize = new ImageResize($image);
+-
+-        $this->assertEquals(IMAGETYPE_GIF, $resize->source_type);
+-        $this->assertInstanceOf('\Gumlet\ImageResize', $resize);
+-    }
+-
+-    public function testLoadJpg()
+-    {
+-        $image = $this->createImage(1, 1, 'jpeg');
+-        $resize = new ImageResize($image);
+-
+-        $this->assertEquals(IMAGETYPE_JPEG, $resize->source_type);
+-        $this->assertInstanceOf('\Gumlet\ImageResize', $resize);
+-    }
+-
+-    public function testLoadIgnoreXmpExifJpg()
+-    {
+-        $image = __DIR__.'/ressources/test_xmp.jpg';
+-        $resize = new ImageResize($image);
+-
+-        $this->assertEquals(IMAGETYPE_JPEG, $resize->source_type);
+-        $this->assertInstanceOf('\Gumlet\ImageResize', $resize);
+-    }
+-
+-    public function testLoadPng()
+-    {
+-        $image = $this->createImage(1, 1, 'png');
+-        $resize = new ImageResize($image);
+-
+-        $this->assertEquals(IMAGETYPE_PNG, $resize->source_type);
+-        $this->assertInstanceOf('\Gumlet\ImageResize', $resize);
+-    }
+-
+-    public function testLoadWebp()
+-    {
+-        $image = __DIR__ . '/ressources/test_webp.webp';
+-        $resize = new ImageResize($image);
+-
+-        $this->assertEquals(IMAGETYPE_WEBP, $resize->source_type);
+-        $this->assertInstanceOf('\Gumlet\ImageResize', $resize);
+-    }
+-
+-    public function testLoadString()
+-    {
+-        $resize = ImageResize::createFromString(base64_decode($this->image_string));
+-
+-        $this->assertEquals(IMAGETYPE_GIF, $resize->source_type);
+-        $this->assertInstanceOf('\Gumlet\ImageResize', $resize);
+-    }
+-
+-    public function testLoadRfc2397()
+-    {
+-      $resize = new ImageResize($this->data_url);
+-
+-      $this->assertEquals(IMAGETYPE_GIF, $resize->source_type);
+-      $this->assertInstanceOf('\Gumlet\ImageResize', $resize);
+-    }
+-
+-    public function testAddFilter()
+-    {
+-        $image = $this->createImage(1, 1, 'png');
+-        $resize = new ImageResize($image);
+-        $filename = $this->getTempFile();
+-
+-        $this->assertInstanceOf('\Gumlet\ImageResize', $resize->addFilter('imagefilter'));
+-    }
+-
+-    public function testApplyFilter()
+-    {
+-        $image = $this->createImage(1, 1, 'png');
+-        $resize = new ImageResize($image);
+-        $resize->addFilter('imagefilter');
+-        $filename = $this->getTempFile();
+-
+-        $this->assertInstanceOf('\Gumlet\ImageResize', $resize->save($filename));
+-    }
+-
+-    /**
+-     * Bad load tests
+-     */
+-
+-    /**
+-     * @expectedException \Gumlet\ImageResizeException
+-     * @expectedExceptionMessage File does not exist
+-     */
+-    public function testLoadNoFile()
+-    {
+-        new ImageResize(null);
+-    }
+-
+-    /**
+-     * @expectedException \Gumlet\ImageResizeException
+-     * @expectedExceptionMessage Unsupported file type
+-     */
+-    public function testLoadUnsupportedFile()
+-    {
+-        new ImageResize(__FILE__);
+-    }
+-
+-    /**
+-     * @expectedException \Gumlet\ImageResizeException
+-     * @expectedExceptionMessage image_data must not be empty
+-     */
+-    public function testLoadUnsupportedFileString()
+-    {
+-        ImageResize::createFromString('');
+-    }
+-
+-    /**
+-     * @expectedException \Gumlet\ImageResizeException
+-     * @expectedExceptionMessage Unsupported image type
+-     */
+-    public function testLoadUnsupportedImage()
+-    {
+-        $filename = $this->getTempFile();
+-
+-        $image = fopen($filename, 'w');
+-        fwrite($image, base64_decode($this->unsupported_image));
+-        fclose($image);
+-
+-        new ImageResize($filename);
+-    }
+-
+-    /**
+-     * @expectedException \Gumlet\ImageResizeException
+-     * @expectedExceptionMessage Unsupported image type
+-     */
+-    public function testInvalidString()
+-    {
+-        ImageResize::createFromString(base64_decode($this->unsupported_image));
+-    }
+-
+-
+-    /**
+-     * Resize tests
+-     */
+-
+-    public function testResizeToLongSide()
+-    {
+-        $image = $this->createImage(200, 100, 'png');
+-        $resize = new ImageResize($image);
+-
+-        $resize->resizeToLongSide(100);
+-
+-        $this->assertEquals(100, $resize->getDestWidth());
+-        $this->assertEquals(50, $resize->getDestHeight());
+-    }
+-
+-    public function testResizeToLongSideVertical()
+-    {
+-        $image = $this->createImage(100, 200, 'png');
+-        $resize = new ImageResize($image);
+-
+-        $resize->resizeToLongSide(100);
+-
+-        $this->assertEquals(50, $resize->getDestWidth());
+-        $this->assertEquals(100, $resize->getDestHeight());
+-    }
+-
+-    public function testResizeToShortSide()
+-    {
+-        $image = $this->createImage(200, 100, 'png');
+-        $resize = new ImageResize($image);
+-
+-        $resize->resizeToShortSide(50);
+-
+-        $this->assertEquals(100, $resize->getDestWidth());
+-        $this->assertEquals(50, $resize->getDestHeight());
+-    }
+-
+-    public function testResizeToShortSideVertical()
+-    {
+-        $image = $this->createImage(100, 200, 'png');
+-        $resize = new ImageResize($image);
+-
+-        $resize->resizeToShortSide(50);
+-
+-        $this->assertEquals(50, $resize->getDestWidth());
+-        $this->assertEquals(100, $resize->getDestHeight());
+-    }
+-
+-    public function testResizeToHeight()
+-    {
+-        $image = $this->createImage(200, 100, 'png');
+-        $resize = new ImageResize($image);
+-
+-        $resize->resizeToHeight(50);
+-
+-        $this->assertEquals(100, $resize->getDestWidth());
+-        $this->assertEquals(50, $resize->getDestHeight());
+-    }
+-
+-    public function testResizeToWidth()
+-    {
+-        $image = $this->createImage(200, 100, 'png');
+-        $resize = new ImageResize($image);
+-
+-        $resize->resizeToWidth(100);
+-
+-        $this->assertEquals(100, $resize->getDestWidth());
+-        $this->assertEquals(50, $resize->getDestHeight());
+-    }
+-
+-    public function testResizeToBestFit()
+-    {
+-        $image = $this->createImage(200, 500, 'png');
+-        $resize = new ImageResize($image);
+-
+-        $resize->resizeToBestFit(100, 100);
+-
+-        $this->assertEquals(40, $resize->getDestWidth());
+-        $this->assertEquals(100, $resize->getDestHeight());
+-    }
+-
+-    public function testResizeToBestFitNoEnlarge()
+-    {
+-        $image = $this->createImage(200, 100, 'png');
+-        $resize = new ImageResize($image);
+-
+-        $resize->resizeToBestFit(250, 250);
+-
+-        $this->assertEquals(200, $resize->getDestWidth());
+-        $this->assertEquals(100, $resize->getDestHeight());
+-    }
+-
+-    public function testScale()
+-    {
+-        $image = $this->createImage(200, 100, 'png');
+-        $resize = new ImageResize($image);
+-
+-        $resize->scale(50);
+-
+-        $this->assertEquals(100, $resize->getDestWidth());
+-        $this->assertEquals(50, $resize->getDestHeight());
+-    }
+-
+-    public function testResize()
+-    {
+-        $image = $this->createImage(200, 100, 'png');
+-        $resize = new ImageResize($image);
+-
+-        $resize->resize(50, 50);
+-
+-        $this->assertEquals(50, $resize->getDestWidth());
+-        $this->assertEquals(50, $resize->getDestHeight());
+-    }
+-
+-    public function testResizeLargerNotAllowed()
+-    {
+-        $image = $this->createImage(200, 100, 'png');
+-        $resize = new ImageResize($image);
+-
+-        $resize->resize(400, 200);
+-
+-        $this->assertEquals(200, $resize->getDestWidth());
+-        $this->assertEquals(100, $resize->getDestHeight());
+-    }
+-
+-    /**
+-     * Crop tests
+-     */
+-
+-    public function testCrop()
+-    {
+-        $image = $this->createImage(200, 100, 'png');
+-        $resize = new ImageResize($image);
+-
+-        $resize->crop(50, 50);
+-
+-        $this->assertEquals(50, $resize->getDestWidth());
+-        $this->assertEquals(50, $resize->getDestHeight());
+-    }
+-
+-    public function testFreeCrop()
+-    {
+-        $image = $this->createImage(200, 100, 'png');
+-        $resize = new ImageResize($image);
+-
+-        $resize->freecrop(50, 50 , $x = 20, $y = 20);
+-
+-        $this->assertEquals(50, $resize->getDestWidth());
+-        $this->assertEquals(50, $resize->getDestHeight());
+-
+-        $resize->freecrop(50, 50);
+-
+-        $this->assertEquals(50, $resize->getDestWidth());
+-        $this->assertEquals(50, $resize->getDestHeight());
+-
+-        $resize->freecrop(300, 300, 1, 1);
+-
+-        $this->assertEquals(300, $resize->getDestWidth());
+-        $this->assertEquals(300, $resize->getDestHeight());
+-    }
+-
+-    public function testCropPosition()
+-    {
+-        $image = $this->createImage(200, 100, 'png');
+-        $resize = new ImageResize($image);
+-
+-        $resize->crop(50, 50, false, $resize::CROPRIGHT);
+-
+-        $reflection_class = new ReflectionClass('\Gumlet\ImageResize');
+-        $source_x = $reflection_class->getProperty('source_x');
+-        $source_x->setAccessible(true);
+-
+-        $this->assertEquals(100, $source_x->getValue($resize));
+-
+-        $resize->crop(50, 50, false, $resize::CROPCENTRE);
+-
+-        $reflection_class = new ReflectionClass('\Gumlet\ImageResize');
+-        $source_x = $reflection_class->getProperty('source_x');
+-        $source_x->setAccessible(true);
+-
+-        $this->assertEquals(50, $source_x->getValue($resize));
+-
+-        $resize->crop(50, 50, false, $resize::CROPTOPCENTER);
+-
+-        $reflection_class = new ReflectionClass('\Gumlet\ImageResize');
+-        $source_x = $reflection_class->getProperty('source_x');
+-        $source_x->setAccessible(true);
+-
+-        $this->assertEquals(25, $source_x->getValue($resize));
+-    }
+-
+-    public function testCropLargerNotAllowed()
+-    {
+-        $image = $this->createImage(200, 100, 'png');
+-        $resize = new ImageResize($image);
+-
+-        $resize->crop(500, 500);
+-
+-        $this->assertEquals(200, $resize->getDestWidth());
+-        $this->assertEquals(100, $resize->getDestHeight());
+-    }
+-
+-    /**
+-     * Image flip tests
+-     */
+-
+-    public function testImageFlip()
+-    {
+-        $imageFileName = $this->createImage(200, 100, 'png');
+-        $resize = new ImageResize($imageFileName);
+-        $image = imagecreatetruecolor(200, 100);
+-
+-        $this::assertNull($resize->imageFlip($image, 0));
+-        $this::assertNull($resize->imageFlip($image, 1));
+-        $this::assertNull($resize->imageFlip($image, 2));
+-        $this->assertNull($resize->imageFlip($image, 3));
+-    }
+-
+-    /**
+-     * Save tests
+-     */
+-
+-    public function testSaveGif()
+-    {
+-        $image = $this->createImage(200, 100, 'gif');
+-
+-        $resize = new ImageResize($image);
+-
+-        $filename = $this->getTempFile();
+-
+-        $resize->save($filename);
+-
+-        $this->assertEquals(IMAGETYPE_GIF, exif_imagetype($filename));
+-    }
+-
+-    public function testSaveJpg()
+-    {
+-        $image = $this->createImage(200, 100, 'jpeg');
+-
+-        $resize = new ImageResize($image);
+-
+-        $filename = $this->getTempFile();
+-
+-        $resize->save($filename);
+-
+-        $this->assertEquals(IMAGETYPE_JPEG, exif_imagetype($filename));
+-    }
+-
+-    public function testSavePng()
+-    {
+-        $image = $this->createImage(200, 100, 'png');
+-
+-        $resize = new ImageResize($image);
+-
+-        $filename = $this->getTempFile();
+-
+-        $resize->save($filename);
+-
+-        $this->assertEquals(IMAGETYPE_PNG, exif_imagetype($filename));
+-    }
+-
+-    public function testSaveChmod()
+-    {
+-        $image = $this->createImage(200, 100, 'png');
+-
+-        $resize = new ImageResize($image);
+-
+-        $filename = $this->getTempFile();
+-
+-        $resize->save($filename, null, null, 0600);
+-
+-        $this->assertEquals(600, substr(decoct(fileperms($filename)), 3));
+-    }
+-
+-
+-    /**
+-     * String test
+-     */
+-
+-    public function testGetImageAsString()
+-    {
+-        $resize = ImageResize::createFromString(base64_decode($this->image_string));
+-        $image = $resize->getImageAsString();
+-        $this->assertEquals(43, strlen($image));
+-    }
+-
+-    public function testToString()
+-    {
+-        $resize = ImageResize::createFromString(base64_decode($this->image_string));
+-        $image = (string)$resize;
+-        $this->assertEquals(43, strlen($image));
+-    }
+-
+-
+-    /**
+-     * Output tests
+-     */
+-
+-    public function testOutputGif()
+-    {
+-        $image = $this->createImage(200, 100, 'gif');
+-
+-        $resize = new ImageResize($image);
+-
+-        ob_start();
+-
+-        // supressing header errors
+-        @$resize->output();
+-
+-        $image_contents = ob_get_clean();
+-
+-        $info = finfo_open();
+-
+-        $type = finfo_buffer($info, $image_contents, FILEINFO_MIME_TYPE);
+-
+-        $this->assertEquals('image/gif', $type);
+-    }
+-
+-    public function testOutputJpg()
+-    {
+-        $image = $this->createImage(200, 100, 'jpeg');
+-
+-        $resize = new ImageResize($image);
+-
+-        ob_start();
+-
+-        // supressing header errors
+-        @$resize->output();
+-
+-        $image_contents = ob_get_clean();
+-
+-        $info = finfo_open();
+-
+-        $type = finfo_buffer($info, $image_contents, FILEINFO_MIME_TYPE);
+-
+-        $this->assertEquals('image/jpeg', $type);
+-    }
+-
+-    public function testOutputPng()
+-    {
+-        $image = $this->createImage(200, 100, 'png');
+-
+-        $resize = new ImageResize($image);
+-
+-        ob_start();
+-
+-        // supressing header errors
+-        @$resize->output();
+-
+-        $image_contents = ob_get_clean();
+-
+-        $info = finfo_open();
+-
+-        $type = finfo_buffer($info, $image_contents, FILEINFO_MIME_TYPE);
+-
+-        $this->assertEquals('image/png', $type);
+-    }
+-
+-
+-    /**
+-     * Helpers
+-     */
+-
+-    private function createImage($width, $height, $type)
+-    {
+-        if (!in_array($type, $this->image_types)) {
+-            throw new ImageResizeException('Unsupported image type');
+-        }
+-
+-        $image = imagecreatetruecolor($width, $height);
+-
+-        $filename = $this->getTempFile();
+-
+-        $output_function = 'image' . $type;
+-        $output_function($image, $filename);
+-
+-        return $filename;
+-    }
+-
+-    private function getTempFile()
+-    {
+-        return tempnam(sys_get_temp_dir(), 'resize_test_image');
+-    }
+-
+-}
+Index: vendor/gumlet/php-image-resize/Licence.md
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- vendor/gumlet/php-image-resize/Licence.md	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
++++ vendor/gumlet/php-image-resize/Licence.md	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
+@@ -1,21 +0,0 @@
+-MIT License
+-
+-Copyright (c) 2018 Turing Analytics LLP
+-
+-Permission is hereby granted, free of charge, to any person obtaining a copy
+-of this software and associated documentation files (the "Software"), to deal
+-in the Software without restriction, including without limitation the rights
+-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-copies of the Software, and to permit persons to whom the Software is
+-furnished to do so, subject to the following conditions:
+-
+-The above copyright notice and this permission notice shall be included in all
+-copies or substantial portions of the Software.
+-
+-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-SOFTWARE.
+Index: vendor/gumlet/php-image-resize/lib/ImageResize.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- vendor/gumlet/php-image-resize/lib/ImageResize.php	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
++++ vendor/gumlet/php-image-resize/lib/ImageResize.php	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
+@@ -1,785 +0,0 @@
+-<?php
+-
+-namespace Gumlet;
+-
+-use Exception;
+-
+-/**
+- * PHP class to resize and scale images
+- */
+-class ImageResize
+-{
+-    const CROPTOP = 1;
+-    const CROPCENTRE = 2;
+-    const CROPCENTER = 2;
+-    const CROPBOTTOM = 3;
+-    const CROPLEFT = 4;
+-    const CROPRIGHT = 5;
+-    const CROPTOPCENTER = 6;
+-    const IMG_FLIP_HORIZONTAL = 0;
+-    const IMG_FLIP_VERTICAL = 1;
+-    const IMG_FLIP_BOTH = 2;
+-
+-    public $quality_jpg = 85;
+-    public $quality_webp = 85;
+-    public $quality_png = 6;
+-    public $quality_truecolor = true;
+-    public $gamma_correct = true;
+-
+-    public $interlace = 1;
+-
+-    public $source_type;
+-
+-    protected $source_image;
+-
+-    protected $original_w;
+-    protected $original_h;
+-
+-    protected $dest_x = 0;
+-    protected $dest_y = 0;
+-
+-    protected $source_x;
+-    protected $source_y;
+-
+-    protected $dest_w;
+-    protected $dest_h;
+-
+-    protected $source_w;
+-    protected $source_h;
+-
+-    protected $source_info;
+-
+-    protected $filters = [];
+-
+-    /**
+-     * Create instance from a strng
+-     *
+-     * @param string $image_data
+-     * @return ImageResize
+-     * @throws ImageResizeException
+-     */
+-    public static function createFromString($image_data)
+-    {
+-        if (empty($image_data) || $image_data === null) {
+-            throw new ImageResizeException('image_data must not be empty');
+-        }
+-        $resize = new self('data://application/octet-stream;base64,' . base64_encode($image_data));
+-        return $resize;
+-    }
+-
+-
+-    /**
+-     * Add filter function for use right before save image to file.
+-     *
+-     * @param callable $filter
+-     * @return $this
+-     */
+-    public function addFilter(callable $filter)
+-    {
+-        $this->filters[] = $filter;
+-        return $this;
+-    }
+-
+-    /**
+-     * Apply filters.
+-     *
+-     * @param $image resource an image resource identifier
+-     * @param $filterType filter type and default value is IMG_FILTER_NEGATE
+-     */
+-    protected function applyFilter($image, $filterType = IMG_FILTER_NEGATE)
+-    {
+-        foreach ($this->filters as $function) {
+-            $function($image, $filterType);
+-        }
+-    }
+-
+-    /**
+-     * Loads image source and its properties to the instanciated object
+-     *
+-     * @param string $filename
+-     * @return ImageResize
+-     * @throws ImageResizeException
+-     */
+-    public function __construct($filename)
+-    {
+-        if (!defined('IMAGETYPE_WEBP')) {
+-            define('IMAGETYPE_WEBP', 18);
+-        }
+-        if ($filename === null || empty($filename) || (substr($filename, 0, 5) !== 'data:' && !is_file($filename))) {
+-            throw new ImageResizeException('File does not exist');
+-        }
+-
+-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+-        $checkWebp = false;
+-        if (strstr(finfo_file($finfo, $filename), 'image') === false) {
+-            if (version_compare(PHP_VERSION, '7.0.0', '<=') && strstr(file_get_contents($filename), 'WEBPVP8') !== false) {
+-                $checkWebp = true;
+-                $this->source_type = IMAGETYPE_WEBP;
+-            } else {
+-                throw new ImageResizeException('Unsupported file type');
+-            }
+-        } elseif(strstr(finfo_file($finfo, $filename), 'image/webp') !== false) {
+-          $checkWebp = true;
+-          $this->source_type = IMAGETYPE_WEBP;
+-        }
+-
+-        if (!$image_info = getimagesize($filename, $this->source_info)) {
+-            $image_info = getimagesize($filename);
+-        }
+-
+-        if (!$checkWebp) {
+-            if (!$image_info) {
+-                throw new ImageResizeException('Could not read file');
+-            }
+-
+-            $this->original_w = $image_info[0];
+-            $this->original_h = $image_info[1];
+-            $this->source_type = $image_info[2];
+-        }
+-
+-        switch ($this->source_type) {
+-        case IMAGETYPE_GIF:
+-            $this->source_image = imagecreatefromgif($filename);
+-            break;
+-
+-        case IMAGETYPE_JPEG:
+-            $this->source_image = $this->imageCreateJpegfromExif($filename);
+-
+-            // set new width and height for image, maybe it has changed
+-            $this->original_w = imagesx($this->source_image);
+-            $this->original_h = imagesy($this->source_image);
+-
+-            break;
+-
+-        case IMAGETYPE_PNG:
+-            $this->source_image = imagecreatefrompng($filename);
+-            break;
+-
+-        case IMAGETYPE_WEBP:
+-            $this->source_image = imagecreatefromwebp($filename);
+-            $this->original_w = imagesx($this->source_image);
+-            $this->original_h = imagesy($this->source_image);
+-
+-            break;
+-
+-        default:
+-            throw new ImageResizeException('Unsupported image type');
+-        }
+-
+-        if (!$this->source_image) {
+-            throw new ImageResizeException('Could not load image');
+-        }
+-
+-        return $this->resize($this->getSourceWidth(), $this->getSourceHeight());
+-    }
+-
+-    // http://stackoverflow.com/a/28819866
+-    public function imageCreateJpegfromExif($filename)
+-    {
+-        $img = imagecreatefromjpeg($filename);
+-
+-        if (!function_exists('exif_read_data') || !isset($this->source_info['APP1'])  || strpos($this->source_info['APP1'], 'Exif') !== 0) {
+-            return $img;
+-        }
+-
+-        try {
+-            $exif = @exif_read_data($filename);
+-        } catch (Exception $e) {
+-            $exif = null;
+-        }
+-
+-        if (!$exif || !isset($exif['Orientation'])) {
+-            return $img;
+-        }
+-
+-        $orientation = $exif['Orientation'];
+-
+-        if ($orientation === 6 || $orientation === 5) {
+-            $img = imagerotate($img, 270, null);
+-        } elseif ($orientation === 3 || $orientation === 4) {
+-            $img = imagerotate($img, 180, null);
+-        } elseif ($orientation === 8 || $orientation === 7) {
+-            $img = imagerotate($img, 90, null);
+-        }
+-
+-        if ($orientation === 5 || $orientation === 4 || $orientation === 7) {
+-            if(function_exists('imageflip')) {
+-                imageflip($img, IMG_FLIP_HORIZONTAL);
+-            } else {
+-                $this->imageFlip($img, IMG_FLIP_HORIZONTAL);
+-            }
+-        }
+-
+-        return $img;
+-    }
+-
+-    /**
+-     * Saves new image
+-     *
+-     * @param string $filename
+-     * @param string $image_type
+-     * @param integer $quality
+-     * @param integer $permissions
+-     * @param boolean $exact_size
+-     * @return static
+-     */
+-    public function save($filename, $image_type = null, $quality = null, $permissions = null, $exact_size = false)
+-    {
+-        $image_type = $image_type ?: $this->source_type;
+-        $quality = is_numeric($quality) ? (int) abs($quality) : null;
+-
+-        switch ($image_type) {
+-        case IMAGETYPE_GIF:
+-            if( !empty($exact_size) && is_array($exact_size) ){
+-                $dest_image = imagecreatetruecolor($exact_size[0], $exact_size[1]);
+-            } else{
+-                $dest_image = imagecreatetruecolor($this->getDestWidth(), $this->getDestHeight());
+-            }
+-
+-            $background = imagecolorallocatealpha($dest_image, 255, 255, 255, 1);
+-            imagecolortransparent($dest_image, $background);
+-            imagefill($dest_image, 0, 0, $background);
+-            imagesavealpha($dest_image, true);
+-            break;
+-
+-        case IMAGETYPE_JPEG:
+-            if( !empty($exact_size) && is_array($exact_size) ){
+-                $dest_image = imagecreatetruecolor($exact_size[0], $exact_size[1]);
+-                $background = imagecolorallocate($dest_image, 255, 255, 255);
+-                imagefilledrectangle($dest_image, 0, 0, $exact_size[0], $exact_size[1], $background);
+-            } else{
+-                $dest_image = imagecreatetruecolor($this->getDestWidth(), $this->getDestHeight());
+-                $background = imagecolorallocate($dest_image, 255, 255, 255);
+-                imagefilledrectangle($dest_image, 0, 0, $this->getDestWidth(), $this->getDestHeight(), $background);
+-            }
+-            break;
+-
+-        case IMAGETYPE_WEBP:
+-            if (version_compare(PHP_VERSION, '5.5.0', '<')) {
+-                throw new ImageResizeException('For WebP support PHP >= 5.5.0 is required');
+-            }
+-            if( !empty($exact_size) && is_array($exact_size) ){
+-                $dest_image = imagecreatetruecolor($exact_size[0], $exact_size[1]);
+-                $background = imagecolorallocate($dest_image, 255, 255, 255);
+-                imagefilledrectangle($dest_image, 0, 0, $exact_size[0], $exact_size[1], $background);
+-            } else{
+-                $dest_image = imagecreatetruecolor($this->getDestWidth(), $this->getDestHeight());
+-                $background = imagecolorallocate($dest_image, 255, 255, 255);
+-                imagefilledrectangle($dest_image, 0, 0, $this->getDestWidth(), $this->getDestHeight(), $background);
+-            }
+-            break;
+-
+-        case IMAGETYPE_PNG:
+-            if (!$this->quality_truecolor && !imageistruecolor($this->source_image)) {
+-                if( !empty($exact_size) && is_array($exact_size) ){
+-                    $dest_image = imagecreate($exact_size[0], $exact_size[1]);
+-                } else{
+-                    $dest_image = imagecreate($this->getDestWidth(), $this->getDestHeight());
+-                }
+-            } else {
+-                if( !empty($exact_size) && is_array($exact_size) ){
+-                    $dest_image = imagecreatetruecolor($exact_size[0], $exact_size[1]);
+-                } else{
+-                    $dest_image = imagecreatetruecolor($this->getDestWidth(), $this->getDestHeight());
+-                }
+-            }
+-
+-            imagealphablending($dest_image, false);
+-            imagesavealpha($dest_image, true);
+-
+-            $background = imagecolorallocatealpha($dest_image, 255, 255, 255, 127);
+-            imagecolortransparent($dest_image, $background);
+-            imagefill($dest_image, 0, 0, $background);
+-            break;
+-        }
+-
+-        imageinterlace($dest_image, $this->interlace);
+-
+-        if ($this->gamma_correct) {
+-            imagegammacorrect($this->source_image, 2.2, 1.0);
+-        }
+-
+-        if( !empty($exact_size) && is_array($exact_size) ) {
+-            if ($this->getSourceHeight() < $this->getSourceWidth()) {
+-                $this->dest_x = 0;
+-                $this->dest_y = ($exact_size[1] - $this->getDestHeight()) / 2;
+-            }
+-            if ($this->getSourceHeight() > $this->getSourceWidth()) {
+-                $this->dest_x = ($exact_size[0] - $this->getDestWidth()) / 2;
+-                $this->dest_y = 0;
+-            }
+-        }
+-
+-        imagecopyresampled(
+-            $dest_image,
+-            $this->source_image,
+-            $this->dest_x,
+-            $this->dest_y,
+-            $this->source_x,
+-            $this->source_y,
+-            $this->getDestWidth(),
+-            $this->getDestHeight(),
+-            $this->source_w,
+-            $this->source_h
+-        );
+-
+-        if ($this->gamma_correct) {
+-            imagegammacorrect($dest_image, 1.0, 2.2);
+-        }
+-
+-
+-        $this->applyFilter($dest_image);
+-
+-        switch ($image_type) {
+-        case IMAGETYPE_GIF:
+-            imagegif($dest_image, $filename);
+-            break;
+-
+-        case IMAGETYPE_JPEG:
+-            if ($quality === null || $quality > 100) {
+-                $quality = $this->quality_jpg;
+-            }
+-
+-            imagejpeg($dest_image, $filename, $quality);
+-            break;
+-
+-        case IMAGETYPE_WEBP:
+-            if (version_compare(PHP_VERSION, '5.5.0', '<')) {
+-                throw new ImageResizeException('For WebP support PHP >= 5.5.0 is required');
+-            }
+-            if ($quality === null) {
+-                $quality = $this->quality_webp;
+-            }
+-
+-            imagewebp($dest_image, $filename, $quality);
+-            break;
+-
+-        case IMAGETYPE_PNG:
+-            if ($quality === null || $quality > 9) {
+-                $quality = $this->quality_png;
+-            }
+-
+-            imagepng($dest_image, $filename, $quality);
+-            break;
+-        }
+-
+-        if ($permissions) {
+-            chmod($filename, $permissions);
+-        }
+-
+-        imagedestroy($dest_image);
+-
+-        return $this;
+-    }
+-
+-    /**
+-     * Convert the image to string
+-     *
+-     * @param int $image_type
+-     * @param int $quality
+-     * @return string
+-     */
+-    public function getImageAsString($image_type = null, $quality = null)
+-    {
+-        $string_temp = tempnam(sys_get_temp_dir(), '');
+-
+-        $this->save($string_temp, $image_type, $quality);
+-
+-        $string = file_get_contents($string_temp);
+-
+-        unlink($string_temp);
+-
+-        return $string;
+-    }
+-
+-    /**
+-     * Convert the image to string with the current settings
+-     *
+-     * @return string
+-     */
+-    public function __toString()
+-    {
+-        return $this->getImageAsString();
+-    }
+-
+-    /**
+-     * Outputs image to browser
+-     * @param string $image_type
+-     * @param integer $quality
+-     */
+-    public function output($image_type = null, $quality = null)
+-    {
+-        $image_type = $image_type ?: $this->source_type;
+-
+-        header('Content-Type: ' . image_type_to_mime_type($image_type));
+-
+-        $this->save(null, $image_type, $quality);
+-    }
+-
+-    /**
+-     * Resizes image according to the given short side (short side proportional)
+-     *
+-     * @param integer $max_short
+-     * @param boolean $allow_enlarge
+-     * @return static
+-     */
+-    public function resizeToShortSide($max_short, $allow_enlarge = false)
+-    {
+-        if ($this->getSourceHeight() < $this->getSourceWidth()) {
+-            $ratio = $max_short / $this->getSourceHeight();
+-            $long = $this->getSourceWidth() * $ratio;
+-
+-            $this->resize($long, $max_short, $allow_enlarge);
+-        } else {
+-            $ratio = $max_short / $this->getSourceWidth();
+-            $long = $this->getSourceHeight() * $ratio;
+-
+-            $this->resize($max_short, $long, $allow_enlarge);
+-        }
+-
+-        return $this;
+-    }
+-
+-    /**
+-     * Resizes image according to the given long side (short side proportional)
+-     *
+-     * @param integer $max_long
+-     * @param boolean $allow_enlarge
+-     * @return static
+-     */
+-    public function resizeToLongSide($max_long, $allow_enlarge = false)
+-    {
+-        if ($this->getSourceHeight() > $this->getSourceWidth()) {
+-            $ratio = $max_long / $this->getSourceHeight();
+-            $short = $this->getSourceWidth() * $ratio;
+-
+-            $this->resize($short, $max_long, $allow_enlarge);
+-        } else {
+-            $ratio = $max_long / $this->getSourceWidth();
+-            $short = $this->getSourceHeight() * $ratio;
+-
+-            $this->resize($max_long, $short, $allow_enlarge);
+-        }
+-
+-        return $this;
+-    }
+-
+-    /**
+-     * Resizes image according to the given height (width proportional)
+-     *
+-     * @param integer $height
+-     * @param boolean $allow_enlarge
+-     * @return static
+-     */
+-    public function resizeToHeight($height, $allow_enlarge = false)
+-    {
+-        $ratio = $height / $this->getSourceHeight();
+-        $width = $this->getSourceWidth() * $ratio;
+-
+-        $this->resize($width, $height, $allow_enlarge);
+-
+-        return $this;
+-    }
+-
+-    /**
+-     * Resizes image according to the given width (height proportional)
+-     *
+-     * @param integer $width
+-     * @param boolean $allow_enlarge
+-     * @return static
+-     */
+-    public function resizeToWidth($width, $allow_enlarge = false)
+-    {
+-        $ratio  = $width / $this->getSourceWidth();
+-        $height = $this->getSourceHeight() * $ratio;
+-
+-        $this->resize($width, $height, $allow_enlarge);
+-
+-        return $this;
+-    }
+-
+-    /**
+-     * Resizes image to best fit inside the given dimensions
+-     *
+-     * @param integer $max_width
+-     * @param integer $max_height
+-     * @param boolean $allow_enlarge
+-     * @return static
+-     */
+-    public function resizeToBestFit($max_width, $max_height, $allow_enlarge = false)
+-    {
+-        if ($this->getSourceWidth() <= $max_width && $this->getSourceHeight() <= $max_height && $allow_enlarge === false) {
+-            return $this;
+-        }
+-
+-        $ratio  = $this->getSourceHeight() / $this->getSourceWidth();
+-        $width = $max_width;
+-        $height = $width * $ratio;
+-
+-        if ($height > $max_height) {
+-            $height = $max_height;
+-            $width = (int) round($height / $ratio);
+-        }
+-
+-        return $this->resize($width, $height, $allow_enlarge);
+-    }
+-
+-    /**
+-     * Resizes image according to given scale (proportionally)
+-     *
+-     * @param integer|float $scale
+-     * @return static
+-     */
+-    public function scale($scale)
+-    {
+-        $width  = $this->getSourceWidth() * $scale / 100;
+-        $height = $this->getSourceHeight() * $scale / 100;
+-
+-        $this->resize($width, $height, true);
+-
+-        return $this;
+-    }
+-
+-    /**
+-     * Resizes image according to the given width and height
+-     *
+-     * @param integer $width
+-     * @param integer $height
+-     * @param boolean $allow_enlarge
+-     * @return static
+-     */
+-    public function resize($width, $height, $allow_enlarge = false)
+-    {
+-        if (!$allow_enlarge) {
+-            // if the user hasn't explicitly allowed enlarging,
+-            // but either of the dimensions are larger then the original,
+-            // then just use original dimensions - this logic may need rethinking
+-
+-            if ($width > $this->getSourceWidth() || $height > $this->getSourceHeight()) {
+-                $width  = $this->getSourceWidth();
+-                $height = $this->getSourceHeight();
+-            }
+-        }
+-
+-        $this->source_x = 0;
+-        $this->source_y = 0;
+-
+-        $this->dest_w = $width;
+-        $this->dest_h = $height;
+-
+-        $this->source_w = $this->getSourceWidth();
+-        $this->source_h = $this->getSourceHeight();
+-
+-        return $this;
+-    }
+-
+-    /**
+-     * Crops image according to the given width, height and crop position
+-     *
+-     * @param integer $width
+-     * @param integer $height
+-     * @param boolean $allow_enlarge
+-     * @param integer $position
+-     * @return static
+-     */
+-    public function crop($width, $height, $allow_enlarge = false, $position = self::CROPCENTER)
+-    {
+-        if (!$allow_enlarge) {
+-            // this logic is slightly different to resize(),
+-            // it will only reset dimensions to the original
+-            // if that particular dimenstion is larger
+-
+-            if ($width > $this->getSourceWidth()) {
+-                $width  = $this->getSourceWidth();
+-            }
+-
+-            if ($height > $this->getSourceHeight()) {
+-                $height = $this->getSourceHeight();
+-            }
+-        }
+-
+-        $ratio_source = $this->getSourceWidth() / $this->getSourceHeight();
+-        $ratio_dest = $width / $height;
+-
+-        if ($ratio_dest < $ratio_source) {
+-            $this->resizeToHeight($height, $allow_enlarge);
+-
+-            $excess_width = ($this->getDestWidth() - $width) / $this->getDestWidth() * $this->getSourceWidth();
+-
+-            $this->source_w = $this->getSourceWidth() - $excess_width;
+-            $this->source_x = $this->getCropPosition($excess_width, $position);
+-
+-            $this->dest_w = $width;
+-        } else {
+-            $this->resizeToWidth($width, $allow_enlarge);
+-
+-            $excess_height = ($this->getDestHeight() - $height) / $this->getDestHeight() * $this->getSourceHeight();
+-
+-            $this->source_h = $this->getSourceHeight() - $excess_height;
+-            $this->source_y = $this->getCropPosition($excess_height, $position);
+-
+-            $this->dest_h = $height;
+-        }
+-
+-        return $this;
+-    }
+-
+-    /**
+-     * Crops image according to the given width, height, x and y
+-     *
+-     * @param integer $width
+-     * @param integer $height
+-     * @param integer $x
+-     * @param integer $y
+-     * @return static
+-     */
+-    public function freecrop($width, $height, $x = false, $y = false)
+-    {
+-        if ($x === false || $y === false) {
+-            return $this->crop($width, $height);
+-        }
+-        $this->source_x = $x;
+-        $this->source_y = $y;
+-        if ($width > $this->getSourceWidth() - $x) {
+-            $this->source_w = $this->getSourceWidth() - $x;
+-        } else {
+-            $this->source_w = $width;
+-        }
+-
+-        if ($height > $this->getSourceHeight() - $y) {
+-            $this->source_h = $this->getSourceHeight() - $y;
+-        } else {
+-            $this->source_h = $height;
+-        }
+-
+-        $this->dest_w = $width;
+-        $this->dest_h = $height;
+-
+-        return $this;
+-    }
+-
+-    /**
+-     * Gets source width
+-     *
+-     * @return integer
+-     */
+-    public function getSourceWidth()
+-    {
+-        return $this->original_w;
+-    }
+-
+-    /**
+-     * Gets source height
+-     *
+-     * @return integer
+-     */
+-    public function getSourceHeight()
+-    {
+-        return $this->original_h;
+-    }
+-
+-    /**
+-     * Gets width of the destination image
+-     *
+-     * @return integer
+-     */
+-    public function getDestWidth()
+-    {
+-        return $this->dest_w;
+-    }
+-
+-    /**
+-     * Gets height of the destination image
+-     * @return integer
+-     */
+-    public function getDestHeight()
+-    {
+-        return $this->dest_h;
+-    }
+-
+-    /**
+-     * Gets crop position (X or Y) according to the given position
+-     *
+-     * @param integer $expectedSize
+-     * @param integer $position
+-     * @return float|integer
+-     */
+-    protected function getCropPosition($expectedSize, $position = self::CROPCENTER)
+-    {
+-        $size = 0;
+-        switch ($position) {
+-        case self::CROPBOTTOM:
+-        case self::CROPRIGHT:
+-            $size = $expectedSize;
+-            break;
+-        case self::CROPCENTER:
+-        case self::CROPCENTRE:
+-            $size = $expectedSize / 2;
+-            break;
+-        case self::CROPTOPCENTER:
+-            $size = $expectedSize / 4;
+-            break;
+-        }
+-        return $size;
+-    }
+-
+-    /**
+-     *  Flips an image using a given mode if PHP version is lower than 5.5
+-     *
+-     * @param  resource $image
+-     * @param  integer  $mode
+-     * @return null
+-     */
+-    public function imageFlip($image, $mode)
+-    {
+-        switch($mode) {
+-            case self::IMG_FLIP_HORIZONTAL: {
+-                $max_x = imagesx($image) - 1;
+-                $half_x = $max_x / 2;
+-                $sy = imagesy($image);
+-                $temp_image = imageistruecolor($image)? imagecreatetruecolor(1, $sy): imagecreate(1, $sy);
+-                for ($x = 0; $x < $half_x; ++$x) {
+-                    imagecopy($temp_image, $image, 0, 0, $x, 0, 1, $sy);
+-                    imagecopy($image, $image, $x, 0, $max_x - $x, 0, 1, $sy);
+-                    imagecopy($image, $temp_image, $max_x - $x, 0, 0, 0, 1, $sy);
+-                }
+-                break;
+-            }
+-            case self::IMG_FLIP_VERTICAL: {
+-                $sx = imagesx($image);
+-                $max_y = imagesy($image) - 1;
+-                $half_y = $max_y / 2;
+-                $temp_image = imageistruecolor($image)? imagecreatetruecolor($sx, 1): imagecreate($sx, 1);
+-                for ($y = 0; $y < $half_y; ++$y) {
+-                    imagecopy($temp_image, $image, 0, 0, 0, $y, $sx, 1);
+-                    imagecopy($image, $image, 0, $y, 0, $max_y - $y, $sx, 1);
+-                    imagecopy($image, $temp_image, 0, $max_y - $y, 0, 0, $sx, 1);
+-                }
+-                break;
+-            }
+-            case self::IMG_FLIP_BOTH: {
+-                $sx = imagesx($image);
+-                $sy = imagesy($image);
+-                $temp_image = imagerotate($image, 180, 0);
+-                imagecopy($image, $temp_image, 0, 0, 0, 0, $sx, $sy);
+-                break;
+-            }
+-            default:
+-                return null;
+-        }
+-        imagedestroy($temp_image);
+-    }
+-
+-    /**
+-     * Enable or not the gamma color correction on the image, enabled by default
+-     *
+-     * @param bool $enable
+-     * @return static
+-     */
+-    public function gamma($enable = true)
+-    {
+-        $this->gamma_correct = $enable;
+-
+-        return $this;
+-    }
+-}
+Index: vendor/gumlet/php-image-resize/test/ImageResizeExceptionTest.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- vendor/gumlet/php-image-resize/test/ImageResizeExceptionTest.php	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
++++ vendor/gumlet/php-image-resize/test/ImageResizeExceptionTest.php	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
+@@ -1,44 +0,0 @@
+-<?php
+-
+-use \Gumlet\ImageResize;
+-use \Gumlet\ImageResizeException;
+-use \PHPUnit\Framework\TestCase;
+-
+-class ImageResizeExceptionTest extends TestCase
+-{
+-    public function testExceptionEmpty()
+-    {
+-        $e = new ImageResizeException();
+-
+-        $this->assertEquals("", $e->getMessage());
+-        $this->assertInstanceOf('\Gumlet\ImageResizeException', $e);
+-    }
+-
+-    public function testExceptionMessage()
+-    {
+-        $e = new ImageResizeException("General error");
+-
+-        $this->assertEquals("General error", $e->getMessage());
+-        $this->assertInstanceOf('\Gumlet\ImageResizeException', $e);
+-    }
+-
+-    public function testExceptionExtending()
+-    {
+-        $e = new ImageResizeException("General error");
+-
+-        $this->assertInstanceOf('\Exception', $e);
+-    }
+-
+-    public function testExceptionThrown()
+-    {
+-        try{
+-            throw new ImageResizeException("General error");
+-        } catch (\Exception $e) {
+-            $this->assertEquals("General error", $e->getMessage());
+-            $this->assertInstanceOf('\Gumlet\ImageResizeException', $e);
+-            return;
+-        }
+-        $this->fail();
+-    }
+-}
+-// It's pretty easy to get your attention these days, isn't it? :D
+Index: vendor/gumlet/php-image-resize/phpunit.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- vendor/gumlet/php-image-resize/phpunit.xml	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
++++ vendor/gumlet/php-image-resize/phpunit.xml	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
+@@ -1,14 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<phpunit bootstrap="vendor/autoload.php" colors="true" backupGlobals="false" 
+-         backupStaticAttributes="false" syntaxCheck="false">
+-    <testsuites>
+-        <testsuite name="Tests">
+-            <directory suffix="Test.php">test</directory>
+-        </testsuite>
+-    </testsuites>
+-    <filter>
+-        <whitelist processUncoveredFilesFromWhitelist="false">
+-            <directory suffix=".php">lib</directory>
+-        </whitelist>
+-    </filter>
+-</phpunit>
+Index: vendor/gumlet/php-image-resize/test/ressources/test_webp.webp
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- vendor/gumlet/php-image-resize/test/ressources/test_webp.webp	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
++++ vendor/gumlet/php-image-resize/test/ressources/test_webp.webp	(revision b79dac15426d1334ae2e2a76074bc154d5da0938)
+@@ -1,242 +0,0 @@
+-RIFFhv  WEBPVP8 \v  Ҿ�*&p>�N�C�Ѵ�Q9�3u>��ʧ-:��c	*d������/���U�����o�经����O���n�����z��O��3�����w�K[�;��>������x��?���{������/@��s���=@����?`/�~���y-�����W�G���_
+-�u?���e�����QlŠ�s78��е[K������s7R!�i�ʧV^4K��*�:'��ѩO�w�*w��
+-�>kMm���G��F�
+-W\��_�|=|���=	<�o�_��"��5�>�ʟ04���OPg~ݢs��(���+��0\ߎ���,��l��n�l�2���S֐�
+-�3q�w��%^����Yw��$�U�i�J�	��N
+-p5G�ܽGYh�#�[����{`���nbGEp��N$,8�#�x�`�e<�ZtX�t��$x�k�2:MǗ�3N\�
+-آ� [�R��-�.\Wp�����=<���r��k�'��a���l��L��uP�ɑ^�TQ��S�����K˞�<���nu7�tU����H��S��(C�`ϕj�O�!<9B�`E-y�2C�g
+-��ƾ�T��G�R��DV5�8��r����Nwq�͊��M<d�� �w@X�f%>0���<�v�u����*��}�wr������m���5���W۞�Iq�%݂��	t!`���:iQNx�����a�*���
+-��n�b�,;ؾ�ළw�ӹצY��4���㰾k�Bs%����k����W���4�(ʶ������^6pώ}k��䠒����G�
+-85��g}�������Wb�YÜ�NC��^F Љ	�B�q�YC�����ri&o�x`Sޑ�j&����p�l�5_�z�������ȄTp��N�"�6ԛ�n'Q�2"<�f��?L��`��惚��a�C��,��=��^���F,�Ш�G�"ݪM����},(���)S1 Xqt<�|1��^����)���c�A�U�Y���Dn�_A�V/�1��	�;zc�
+-��e��db�h��8�:PHM�G��n����g��i2�<8��7��p���׫<1�E���4ݽ5�傼���8*�dr������^�%&!K}k��O��b[;�,����Ws��YwE�u�C+i�y!�+��'�>���Nx.Ɗ?�>����}LN;���;"Q���Ɯ�;��$���M�~��z\�������2����e������lJ~��+�w}�ݸ�[h
+-�5]I�S����V��&�[Fۢ��xfd142f�����ج+�.��SB��
+-����a�TL�  "׏�%	�J��3���Í�iV�f���k
+-6�q�HI,�'x��5�=��/�w��s��Ʃ�x�m�(��o�U��Ke��"G�q�ǅV���Q"��k�-�y��%�1�w	�-;T� .�f��Wk���΁��ߟ��`	�b��u,ǹ[��j�q���ۤ_�6�~cH�����6�?
+-�h�9R���f��<��^VSg�,����s�)l��U��d<�������f+U��._K*J24f�a���\��3�ޯ�]�e�/�Lv7ю�@�`��FVÒM%W;�O���TV�z�'b
+-��7.G�w��6%��8�~����Tݧ�!�*�T�ˤ� [�Yb/�6�>�ܦ���U�U
+-
+-S�˕:��9 6D:�k���۶�1�>��
+-���zZ��r4�P��n�hCn�͡��+�9�l�C�|!��>2��;�cJ�zrF=�n$<2@u�c�8<�R2U�e�vH�O�x�+�B��i��X��f@��5h��*����d��d|3��4��`Z�P����u�i����(�~�����k���T����+GZ�z��-����p����)��&I7��/
+-dr~�W '��$!~� ��(�$��,�R�?%�T�y��y[�C�]-�L`�}K�H�꒯��7��v�R��� (�"H��Y���E��v���ɓ�������Q����^}+�����b�[I�t��i�]�D�
+-j:"s����YqE���a��q�ш�ި���֬-�P���m��&��
+-v�t��EEc@	�>Z�5Ae�l�|�.��9�n&������꾲��L*� �<��6��_{�1�Y�W#�p��U�N���2�c�8�2��	��#��Z���&;�N���n�z�&��e:V��9���:��Zup�:7<����fT�ʏ�����U"�
+-@����{�Q�__���֦���
+-*	9A����7���5֧y�-��_?�~�g�/��h�޸:�?NAX��M8b�����)B�^u�w�#��g��r���_�u��1q��8[]��"�,�"髺�>1��8ؿxQT�`P�1�%�d{�w2"5�APV������}X���6��t;؀�>��{�;~��Q@�نY�h���̟>�,G�m2�z��#%ϊ��v�VIO�՟�lZI�#������,	��e�=��jE�/�־oZ��)�7<ڢV)��B��]{�����d�BK��;��SBr�`��Y+̡��=�>[aq
+-=���-n��}-�RS��t��B�G ߶֛S�#��h�7�x|Y�{���}�-���N��������
+-���
+-|6<�UVOx'�� �>1�N�Q���I�d{Σ�}�4�bP����Mgt�6�#�˥L:�v�|"&��8�����뉉sm���{΅: �!-Ǌ��N��V�,��9�o�-/�>���mV����c�17�s�?��g��p���sj"��0R���O��C�7�脃\�����Y��L{�Zl8�y[SM�}��,*�C�84߽��6!k�Z�k����,��W|/��'�"v�yH�g��#�m^�+>C�1�Y������x���w����:� �O~L�D�vc�T3a Zz���6�RW_K�9��!A�u�R�8�iî��&q��~f�#�1���`�V�M*|�j��C��ɫ\�Q@bQi���(q
+-x�É<'�D&��g��C_\�2԰���ˬ����Z񪙯h[�����a-��(1~�#������uE{�q8(ҭ��X��h܍���w+�Pb��̿V
+-�L�,�e,�[^�����6�M�x��-4W<�1�����,h2fj�=�^�����;p=�Iر�����j��*����1���wL:��hC��̕�=�r�#���-�qQ#�\`�)�?�$E�����dϹ��3*VS�?-������&$_◭_C]I(^��w���Sb���-נgZ�w�#�
+-�S���7��8i��D��`�i,%�X6^\����3豋J2G�>�V�(\�HDkF���7��f�<+}�Q�A�0Vz��pg�df�Ok1�cD����E*�c�06Cfq�����w���M"ُU�3��5%Nw����j+�R����
+-�������y��,}�|�X�d���D�&��6��"���$6-�*k�@�1 �SF�V������^�r@�G@���� ��"
+-_���'����ʻ	�0��
+-!뿇�Jp#�*w�������cB���m3ד��\ɍ�mjo?�m�����tN��r��Y���cN�����2k#,�E� O`w"�cZJ�H%/$>�6�n 7> �g��h
+-�?�N� �2	�)gC2���p��ǯ 
+-Y]E"��'���H�F�*��e���c�gQ䒂���p��i=�5+��c*�_a��~�����O�U�"$��f�|�K��dqy��-Kp*�!�w�H8�'�����C_X:T
+- Ji_7%��i�d�-]��?i��ƣ���q�;��F�֯K|`K[�E�ɒ0e�?T֧�(� �iL�}�bz�F��O���f�__ϹNn�z�z�Qa�|��V9���(x_��M�%�{��b���i�7{��l�*ME��Ma�E��W��?؊����{��1Z�M��[=��~���0��ͬ����,"2�G~��l�j�p��@|��eK�~=c�ݛh����|�Ï^,ukq �4X��ϵ/��y��J=�dd�ԣ�hQ
+-��D,��1��x �u��Q""���#�c�i��ye#�炪�|�*��������ð�1�Z��DԫF>� K�Ǟ�~��яw�oq���̂�u�e�؎=������)�4�*����mͶ��	ނ�ڕ��z9�A�����
+--s�=��%� A�
+-�(��l��V�B;�5�Qϛ�d0��Z�3F�73|Щ���${��ˣ�l���v�fC�0F��j�T@7J�
+-��7�e.���f4ze������m��p��@1z���ưP7p�V�*Ҧ���&�i+5	��c��ǝ����p[`�}�i ��(Ⱥ~��Y���A��;"���
+-�P�cJ�b�����*�<O����&8f��q�WS�5O�(�}ב�_���gk��+Y*�������lj\��ni��h/:&ǘ8�A� �юE�N�P4�&�S(9-��}FVfi�#���e���i��j*�<K���9{T��8 -���l����LU���^{5�/�	%�xǏ�	X��c�}~�h!����}�����z
+-�
+-�����P��C���!ǽ� Jw�>Y/2��샎M<ct��NVq���-�}�<o���ZS��l���Vs4B�ӏD��j:Y1��D�sV5��]��,e�_��Ӊ�e;�l�x����S,�[�� ������d	p��={H�"-��[F�"�,о�',U���z��n��Ô�m�Ϣ���46���]�CL�I�z��
+-B�����]��
+-���(QO�x��8��<���������׊�a۩0�4����[3�q��R�\���»ۂ*N9��o�c���=Ƹ�(f��%�b��.�����J`��4�t�2bc�1��d c�tȔ׳L0�r`���B�J��;jEt��j��
+-�OJ��(��2�z��tW��l7����ܙ�y�t�e�hUp��Jx^��C�@"�L�C�M����~�ϋɄ�l῀"�H4ȁ �hI9��� ]���<ȍK����(���Z���߃���8|kL�"QG_�����b����Ý�"e�v8���J>��&���/�zw�n�A�����L��-�6�;�>Ŝ�#4���ܑ�5�}̹S���'�g1 gm��Qİ�d�ʯh�O]���H�n5�J\J�,��H��&��G#�n�JXfOn�AG�`߳%�������lO��o�o�`*鵦?�5�5�$C�^�J�i��.�1�1���S��m[�w���v�L�
+-0�R�,p>��(TA��L)���Ǝ�U�!~�/A!��a�������5��^$�!H��LwI:����^s:8�SA�;Φ}���A3_�J����zqBMX��>Vyjj���B�O:?��	�,D�}����0(z��woT5���%�ֽ�(%�eg�����L�Z�_�IW�#]E�R&����p`\���-r.�/��e_�@QXR�D��w�����]�]릳���t%We�M���f���9����!$�ݓ�iO��K�8@޼�T#�q�#_R���~q��'Y.��s�� Y�bu��x+H�S����oLl;�c���Z���پ����,(���y�x������Ӛ��3�U΀�O��7�d߉U/��̹u�2�D�}O>�a?��R���<T=�RS�C��^��e�P����-����H��;�.� c`9l6���ק���]��N-��P����_�F��pm0�I�.�,B��`��D�C�A���,n:B���L=�X8��"�L��Is�p�?ƦM5W���9�,R;��]QQ��_�������X��v_C�$�:jI������QD�-��A�t:��O�1M��-?�J��.���Wڢ�jz��{�%����h��}�
+-�\q����!�ELס���!�i(_��,T5:I[�^rf3���W�#�=��w���.��D��6`�%Y{mσ�A����'F�f B\���ꢶv��n�j��s��-�7m��O��y^�?s^G��{�3�����l/��F�U�[��Ƕ������Y,L�?&ؖધ0��J�8�� ��A���2�q% �dİ���m� iǫ���Ѹ�V��̆'����_]-i�O�[�d���%K`=9Sȁ���yj*����ϋ�\�NlS�y|���d
+-�=���²z�$������Iv��]����S��3V��R<R�,p���&�'�)faH�$�q�W�� 6Yd��o��2=���<L]�Y�8���%~�%���Ϧ��ak�kʞ�(\1�d� `��t{�s(�n���Q>���gФ4�͜�[~n|�d?t.Ì�&�����mL`<;��U��Ѷ,
+-��E!=-R���ID�c�C��ot�=O�A��7Z�j	[r�5#1��e��'m��I`������^QK^$�h���-�#��6
+-h�`����!�z�g�08�跦D۬�U��[8��np�gy$��9PN��xw�k@��"~_�{U�,cc����t����wT�����&�=%[�T�CY����]	��������X|�?~L���sD49��#��u�X��M��I(��y�6*�\����f`u'_�Bq2�vv�L����;��]��+�|�MFBn��ڳ�Ex�&PU)�s�O>�(i;� C�<��J��v�B(k��� ��~h�.�����p��i�{�]��܎�P��´��r�L��,'�^,�dv�y�"T�G�n�`30���Xc�
+-1ВmFR&�6y���S�
+-#�����]��g*��M5��)BU����sN�C��kǾ�\����5���;���е6D,X�f9�/%�
+-OB~�z�TNGC���w=�c��=�i�Z~-�k�`�(��)ȯ�����P�����9�9�
+-%���ז�}�&��}�UX��!��pmlZΰ�-h:�m��t��U���=�`�I���H0�<����ӡ��潳|_�VR&���+�`Z��u���%�\�G(`f��0e�b��Z��NM
+-S1�]�-`��
+-������+���I�@m��bWvo'�Q��2ig_����!�4����t����w8�T�Z�-� NՍ�;Ҏ�<R�R��FX-����N�.j
+-ָ�OG��~G����[����ԑ|l�8#d�lҁ�����4��bD�`!`��U�������P�i7晀b䙤�Q(5I V�Cc�,(,�-_+�8Ǫ'RW�$��qo5���	�bd����u���_�Gk�>ЕR�دlۉ L8�TR�4�٧�����58V�7������N���|��gW:%��_�*��z��gk��[�4�F�%�I�c�d�pP!Qz���K[�Ψ��{p��b�_����5�ݐvM���߇�$��� ��_���� !�Ӽ0bD��N0���?����H�1r��
+-�x�3��/����4��	a� 0գ8:%Ũ���+����2#��R`z�R�����<��uH.
+-P}$�������g��y�<���FG_a���Nq�ZZ�A���EmW+ŪD�l�0�5e����F���^i�B�ͦ q:�Q2�H�R�R%z��5�]'��|uIw١��7E���cP��{�j���謕H�� C��#
+-�W����%�LP����4 �S@#1<
+-O#Ϡ����ܤXjgK����"��g�ò]v{	��<� �%QѲ���%r�e�C�NQD=X0`�,"��k��:#��^�)h��5��(�0�[��Àv�6�Q�SI���`����.���<+��6?e# �=t�G#�r���
+-�6���SVh�4��/l�6,:A����N�U�VD	�5Lr<嬕��2����1���3X}NTh�CV��[Y���X���ϥ�7�;4�U�g�,����I�������#pTbC��&d�"��6(��	���i]�+�ј
+-�@`}NV �I�gh�����K��t�[�?����çdAoBd�-�	H�V`�=��_/���f���A�Va�c�0s��H�Q����l���p�ic�܋�
+-k�
+-�'�����cuI�ÿ��8�p*;B�r�1��!�UU:�A-�LM6].���Ors���� +y����K���ۻ�����s�-�@�i��c�3�oM?ӿb)5�w�>[ku��\�������\j �%j@e�����>~��]Ye�;��DlR����۴k�ڮ�&a*;]��b3AT�dn����R@$�R@\����,Ç�F��N�kB>�J[lo��%�*�֤��G@?�������w�Go�8u/@�/�
+-����|��������e�8�ٞ�I� C�ǀ��Ӊk-�7U�h�����o���W���<6�>U�x)6nѽr�aਬةa
+-�=2Q* ˭aP���05d3��C{��; "ɎU�gP�4&����-L�{f�C�0//�6�*v��W����ʪ3mĝ�7)�Po0���5�{��s3�3��O���e%{w�!L�9�)7y��sHj3k����0X�p��$w2�N���P%���p��!�f�ӯ�����y�m���F���Ҍ�+kB��a��0�T;X!Ň���A��ͺ�" 
+-�����ok�_>�
+-�<��Fo���w"RG4���'#Z��ܓ�Ն!��i7�H�A�/����YH�=gsU��+��`3��_�j�8�D����w��d�n�/B�Ww�XW'P�|sF&%^�3�őJ�q`$Ţ��o)EF����]�
+-I�Ԇ�|�R;]O&�ݾ�oP^ʇDm��٪�3�гiv-K��]���5VK�X�J=sC̍�{֡�r���w`0��uI�%:S,��E[���le9"����R(��-r�/�#��,#�zj�|��N��9i�>�x�ρ�b���
+-^�����;�D�����2N�?�e���3���\ky���޹z�7�N��0���dm��
+-/�M�<�gFr�2�-�9.aȰ�k�(�0�ljp4�n�{�cz!
+-���x?:_Ht�^m�b��H��i��'�����/N͞q8UArC��PA
+-A!d�����@p��
+-7�@|M�r;\�D��ݾ�(��|�R����ϚC^�.��c�>X�x��SJ=X�rF.ʹ�e��j�qz.ͅ�`�D�cXq._C%��������zm'8m�Բ���D+
+-Qɽ�K����{}2ϻ!���yKRVp���W2z2�<�"x�ل�Y�ʷT��c1r�8<�΀���\~������Vt�D�^t���ݕ�:3'����eǢq���Ry���	a�V�W�
+-����hs�M w����ꠝ�w34*�i$�.�ioGq�/O��Ò,i
+-afb��X�:���*�FU�T���ÁƲ�'n*)����,2[�FT��b��g$��=l�fG��z�x։j,U@�J.td�6��~���ĴEH��R,��D�}�kˤm�b��a�`�7z�>�2�m���J�b~X��3���zE}(bH�E=f�dqD��a$Y��w��E*�;��!�-q1���#U����4���[}4�=FL>3v��,S�+�N�=��.8b�b�3֬�R�Pђ�H����"��	�!"	��M[!� ��-�|��Z�X����g�D���I���1
+-HC��q�x0x>�9K�!{����W��h�+�q�}(Z\�S#a.��b��,F�?��mc��9�)
+-������50���"�"��,�
+-�DD�$�{�a��oeM�¹s��r����s���*�wN{_<h�|�3��3���C�.o�M1�q6������h6��mU��J�$��ڕ�Z(�bD|��d�}�9�7��vy�4�K�������Ƣ�+7� *K	��kov�� �%|T���ԹX�*p�^}:�w��]��[�FGԶ/�,9�&Ȥ��M|d.)�ݢ],�Nk�]��w����+=��-Qj�m`iɾ�MI��/u9����
+-_���M˩�{X�Rv��cRc?gY�s���`� %"�`��zŇ�����I�7�bf2w𠩴H��B�_�������F����r鏱��]�2�����p3�DJ0�������7���Z��9˾F2
+-S��2|И�����*�6λ�49�� ��@��; �AQ�U��XӼr��G�:B��·۫鞲>��9�'Z�Ӂ�<����2t
+-����I�������u�B���;�"d;7z��(���\k��5c{�ta
+-/���hZ�$݅Es�� ��q������}>@l�������h�����7���(��R��lŻB:� =F�Ĥ��"*�D�JLs����=�U�D� �V@C�؎�¬%��L��{@CHs���H�L����[����s��`��VJ�!��,0O܁A��mz�r�~���4($�W��2�W�(��~�|NWb�6�١$�aCl��2:�aA���1rS�I��������nw(�矀�,ߘx���}�=�` ��G�E���@H��V���_	3�81�H�2~�j0G���(P��i7w��^�/6��UH$_�
+-1���������#��W�.?K���T1��4x��{��I�c
+-
+-2o���UD��>{Z��n��e��IX�x�?�3d�RJ��F��e"-��jD:I�3�5�UI2Q�i<5�W0�o�
+-x��| *G���n���X��u3s����Q�S�F�1c�W+�J�_%�d��6���d�R;P��%E .�����1�eˋ׉y��{U�v��
+-L
+-O����䰩¯d�^W�*,43ص�ҖԯL5@qӐ��תy3�}R�Y	��Sן��f�G��H�a��'�;T�[1<8�M��E���'f ��rQ^��/0,YJe�z���]{������� ���ͬ<M��	�Rz���4�\_�1���2�7,	G���$S-V������Y�E�\����h��`�W4+V9hM����ں*J�"�ޅ0�x�K �p����X��*4G��r��-���XyKG3&'x}�u�tp}��R�?��)�1c���##X��\�>�=���O�Z���Cl-'W�&T���:�������W94�t�!t|a�>.�O��G?�@LOiN��;؇�u��t��M^(���f�N\�o�}�ק�F�*,<�������G��!�!�9��x��),����<�
+-��>;7b�������z�����n��%:�p��)����th ��ǐE��E��am=X�i�(�(1����B��)dy�_ѯ[$�b#P���4��
+-��2��s�j����������!aG|�P�F�2�º�l^���ɢ�(X=,\��d�3,a�|c�m��ˉ�.��]m�%��p�D�����q�\ν!��?�}�*����%e���2��d�������j��]w��SN�TaĖ��)�ٹ:�^�م��b:ŋ�M������ԙ�ء}H�F�Ұ�q��1(��y�3:[#M��fVV�7e-��>X�&w��g`o�����!�"��(�x|����*��~E�NgfR�/3g��`�
+-Ւ�'���ϭ_�-��Z�\��ϓm��i��ka����@	c8���Tu�|~�^
+-��+~�u�3��J:\���+�b��5�%�W����I�Zۧ�����H}J}��)OH�~�Pk$�����)E���v1��s����� 9��?�V�~��pݙ��1Ӏl�Y�U����9O/4e� ��=��gޝ�>�5�9�[p���[`k�Z]Q�+d�2.IH\���8�3#?O�a���t�4� ��R�(	��	�̀�٫����#��O��]�.��Zk��^w�#��̜�)SU�^�d�&�*
+-
+-��<a}9x�;D;���Є���]�%��6���j�U�:��Xq_oW� ����)�f
+-:\׊Z�ۄ�ܨmzxa�j��(=�U�[�Y�(��
+-ƞ>a޿FcY������M�����7��^��*���~,��ۨ?�8���ɟw��]נ%��gf7�7��I.rO
+-�l�O(7|�I�`@�ŷ_`��9�Ŝ�j�ũ����� n4>r���?��OTj���9�C�\N�[���pEL+��Q�߸�=P�xqy\��.��"ƃǩ���,��{;�{�4O �#P	��r�K�t?Q~��8�D�+��%s��X�.ӄ6#i�f�LYNņт]��Y����/tK"�W�
+-���K3���~;�l�m������S-g߾ܘ�O�1�0�������1��:]����ő/� q��pg�x
+->�Q�'ng��R.�vW�Ձ ����S�u9��h�A��Lp�fr|������aK�\u˴���,�>��	�jV�X�����Ԇ�ԃ�:ɍ]��g���u���Z��LDe�Bґ������eD��7��x�kف���Hr��`[T�����Qc��V0�)��
+-6�5�:^�����uN�^R��1��V�T)2��"��B���Ť@�"�/A$�ܲ��p�]��KY�t��y�� �c=�n1�+k���C3:	34�W���ӎ��`�����E]�ϧ�W��XכR�ֱ�Ua��{��p�w�	�T��@�W����6�s{<Þ�Y�,�m>��L��0�_U�z�`�:*�QU�K)ٕ�W� ��ӆ�����\ً%BҺ�����n ����ǉ���G��<��Cz���=g�E�ÿ��qֿ�I,��.�5BE��s*pI7��ۦ�hX�:*���� ��~��
+-��Z<�^�c��Nz�|��5����<��G��~^f">���ҭcM�^Uk+��h	�r@����b�=<<�C��P%:KZ�� r=)�����/S�����.݉���/���e�#�jۿyT-�6�V���%�4b�=I�wv[����`������Y
+-ñp�h�hbdy��1L�7�k�n�m�q�+��зf�5�s0Ú|Y�HA<���^r`���o�����J�v�g�~杻/�zx��lWD��_`�GD�a�s`Ǚ�`��7�Z��Q�q:�S����]R�@�f�
+-��0�Zz��^L5�dT܎���Ќ�RџeT�RZ=d���>�X�1�pF�}B\�`9��xز��A����%0��
+-;1`��@���Y�x�?�G37Q����tK3{�\�Ɗ�������3��OLa��<VR�R�|�W8��7_�lk�=��"}���w�
+-��t {y�i\��!��N�rr%�\
+-�7�&�N��2B.^[k�?~7�";Dr��y_p�B�3���ⴇ��R'*Ϝ}x8�7��p��#�"��|�)/�����U&�VA����o���TM܌~���@^.�B8��Nel):�sj�^a�񕀑��pW˽��50nf����6���d̈�)6��/��E�ה����q����%�(4\g7��F ��}L��6���b�T+�� Wپ���ƝqWD�%t�nCA���%0q�3�W>MV�)���]�$|(��S:����
+-�a�z��:ή�
+-��V�gf���ݱG���<�k����6�l��-) ך��+���*x�R3�M;7��e��}�>��uo���� |O>�����q�������^^h��v�0hyD�
+-�y~5�H�?�/���8}A��?��
+-��r㣹��c4&lS�
+-�K)�F���3�D����\O�<mh :�ޒ#���H�����8������cfXv��v�� Na i���m��c^��T�m@���K����j�6�Y���ct佘��<I��\�`Z������@���Np��<`�L�$�7��B"�!�*`��ٵ�0 ��o
+-b;��G�PSe�ݾ �~��2k}ϧ���7H+�\�7@=Z\G1��8$e��L���SSq0��q9�5����p���X��]Pa[��9��;e�sx pF��
+-�]�m=���l�������^8!���cp�9���˷��(��:�]��h��d�?43&$�S�\!�'~�#>anX�j
+-��-��NNq���@��?�p߾�Ac0�\�8���^Q�F�) �uS��[D��B���d86����s�b�0�j)P�=�R���8g��6��������8��57r]�Mg
+-�
+-#�q�8@L~�Ю�Q�|�R��j�H���_1���q݀[?�[�@"ߕ$�8h��%��H_i2P�&
+-�Yѻ��+�I8��V,�NP��9v"��7�u�{�ٮ�y)q�v����w%�mG"�����?g~
+-�u�]�Iڼ7�$X���e�x"�����飰-#�`�8ƳfIV;UV�Hr72D�7���B�Q�����9+|�,(�:tO�%z�q��䆄 �[El)=C� �`E9��Y��O	.rɖP�,��̦�{�jW9� ���o&���}�`�j�?�Q�٨�a��u�Jw3<�Uz}��2�ˈ�4����M���1���9'�3�yQjiI��R�(�,!C�LS!����9Z_��qe-�2�0�Z�Krq3�-i�~p�zTK�e�4�g�JE���/���+�g�v~�8�d)q�`�§LC�'���CՁ�	nB'�v);l_�$x�C<��/\v�&�ks���S������Bs9;�ڽ��TN��-����8�jh���2R�O7%�>��Y}����:�d��o�{����z�gt��/��<H�/Ǔ ��@g���a�`��Z:py�,��`v��\I�鿧�Bb$��w&:�#ǏWҕ���u$��K�S�Z�C��'���9�i���ٟ�='����f�飠I V���x�y!
+-ٓ��֑+�k�2�U�����l�қL�C`���E�xo��#fr�cSu��V�����
+-�e���a��֓�?�~x
+-��`$ߋF��
+-�	��e�9��L쿉�2��\�w�=�,t���䧀�Fz�`[�l_�����ùU^�(
+-Њ�an
+-3��yq��ؒA��9��|S?'��0`_�0�6L��N��X[�`B�I֦9�����gFU�с�Y_�+i�v�������g�r�v���zjU-ip�
+-H�4Ј��n0����#F�具�6'�ZQC*�pf����)���x��u�
+-)��ėaZ��(T�6r�~�(c)|��Œ��}`aϨ��]����	z>gG��Z�?���Bo�<��U�Bw?|V�7��|�t �Q��Z��g�I貫B#i��/��V5�����|g��1݁U.�^�E�	�*_�nUR�z� juC�nc�\JĶ3#�M4���M/<�B�$&<�+9��?���f��� 8wN��[7��GȢ�s���i�c��"�qB	�!�?��9�f���,���6��*Փ���3c��׸t�k?�Ly��E�8��EJ�׃:hw���͹��z�/�Lo=���^f���䰯�E������\�sl�� {��s	�U�,T��n��4s�ސ�9yO"
+-���<$X,�w�,wHZ)�yX����P5�5z0�UB�=WP씽���Y�M�>-������]� E\+�Q��El��A�`�i���@��O�Po�+H~����$�eJ|�,�s|A�|w�]��qה��0��@����Go�_����XD��f0�z��G�Bb�]'�o�h��q#:��w�ٙ�b�1��{,@j�hswa��vB-��U	X��wFP^_���_@\ �]Tm!��`p1a�� tȉL�G�x�Q"Ǣ�j:�
+-�K,�]]{��_�D}QfD��3�	oc%���b'���!F��9=I�ƹ��ݭ��qh365T7g ���<P9�$C#��m�Gށ��h�lR��T�}j�h������J��
+-M����g���ǴZ0jU`/+��4�/�Y!_b������~°o��9FՑi��7M�\��dN=�RYY�#�7l7"�0B8'`�r�R?/*���L��˺�Q�c��6D��!P}H�S�h2�e�ly퍃G���".��I�X灓Z������!>	����'��q��4
+-�K铘?���'p_���9���2W���SZ�&�����?,w��
+-��H��8��/��+�"(�(�n�`��iaT�iQ��O�N���5�[R�>km^�@nbXg:��1����ٱY�p���+)i}="��♈l�i��vP���$X0��N�fJ�G��Sb����eX���	D*��w^�D��)V�/�<!D�1���mոɍ�`N��͊���g�U��%�ۀ��}�[m{�s�%qR�
+-cn�T) 2��ug�gH��Uڼ6xo�����|���䰰�R�L(��	����҇N�@W�>�~�V\dv���ͺ<(�V<k?%t��=&���0�T�>���SR�
+-�-ɼ���"�!�(Wo�ƾ�5cg"??o�2L��:Q����߂����1hr91�C�w��?a҃3��O2�� 2%�u���	�1��w���5pŌ\dÖ��C��D�͕*��]�S���U�����Ҝ�>�Ky��a(k8�nQ���U���]��
+-���Ք��f|����b�b(���m��녶���^��i/��錭�M'�쑤�tf ����
+-��/k${����u���v
+-m&�g⽞��۬��NA
+-ތkʐr����fо �5���BF�ӦgwӖ>��x	>��ҸO�%����[��7'̮!Zu��%�!�o�W�hO�#m�TX�a���	2ųY�>��4�M��O��w��=hey�5��E�C���־Ҕ��5���Cwek���a'����e��ċ� ����5SҲ ��k�4t��B���>#kD�T+�4C�s���zۭ�.,w�t���~Q�c�k�\���E�A��y^������)f�Y��;���B?�ѕ��y�򱔇�e��t/�m�j���,kW;�K<�*�꺂��E�J�w�pS�
+-8�eT�ٔ f>Yi�����w������������^E"7T�R���UL�-��M0�+�d��-���=��8A��cy��*�{���������/��nLHa�w �c�aYj��[�1Q�
+-�&��q�|�4K��f�֟�q!�2�Rk��^� C���J<G��'�ħ�)�i��l+1e�?f).�7pm���W��9-@{Z���S{RG�%�_	\�gqlԟ���=�q.mw�<�'�'ݮo����%Ѱ��Vw�ڊ������ؐw�����R�v��s���v�s�����@0?�Wأ|��iP.T�R�zH%�ɛCI["�bj�V~��%�`���.�XE�[z`��޹YE�k�m��E��qe��7�}(�,ō"����xW����\� 9��
+-���?���b� ���� �d̡�.K�<MQ���-�����Li�5R�['k���=G6�Zcz���A�h��da�u��|Dv���?����"K��)CU7����KJ�Ţ#�s<! յ�A�B�&�x�/DL�ĩV��u����'d����|e@$'.�s�ɚ:L�������Ճ]ᄆ�a�ٝ��,�8>�x���r�	�
+-�|PI譂��"R���SM7sK�{�ZH����"%5��F�:����фOZ~9����/�]�wz�-se*��fdq.z�?��7���P�QI�:�	'��
+-WBH2ē���t_�`d��
+-?*zdCY'V7�M@�Z�oϧ �mEn��78^�屈��8E	��A��Ų�΋O�~��.�y
+-[*ŉ}@���X�5� !s�W�耫t��ETհA���n��5d�T�9����k9El�5"��L�ȼ�[4�@���m���.�@/o	�1�>P�����۩q�Dpo�ǧ����5��ճ��"<S��X�LR����La��K}�2b�%ؒqd$A�QG/AtF��OY9�}���ȅ+h��g�
+-�ڱ��u rsuj�?n?�J�Ħ��4J�$�	m`u-;����.�T�(Ұl�9�-����)��σ�n��e��9e��6h��^� ojE�QO��koU���/%d��h2Ӹ"@���)��Mkxʡ�'T�����f�4M���ۛ�e)E�L`<)�@�s
+-��dF��c��������g�ݖ/rr��a�䑢V��
+-�g*a ���W��9فϱ�h�(j>�N
+-���+?@��XcL,+^<�H'L���29��c�q�
+-�+m2�q�`^��2��ܮ��Z��j\��]��z�R��̲�
+-�:j�B|�`���:ǧ��=�����q�ѹD��C4@�Ñ�l�P_B�d��F�И'�������4�s^��H+b�v�VuIz����L���L诵/UE���t�=�ȏ�v\�n��(�P�\Y/�L�?jO�Q��e���d�XßGb��/��*.57_���*���=�|)�%G<�"�;[.���,���Z�����ɂ*�1����S7,&��	M���
+-z��5��K�Ҵ4D��	���X�!��^g2Ќ�E�
+--!G�	/e�wT�
+-*��%x�Q��j�O�Ed�fGĹ�A`o�i��H�M]J��	��D����ATN���Sf��˗��gp��r\���iK�F���}H��f��F%��'����=��r���r��>C�7/$g։��A�x�? �c[�.Ei�������
+-i�f8���r�q���)b�'�R:�|>S�w_����v��2�e�٣��W�o�� ��]���ĸ�K�"|�!��Sf���l�JL����3T��'<�P8��hi#>����������)[�q5J*�$��P:��VA!����D)A��\���tj5d�?�A�я��{�c{ <&O�G�I
+-Q�Q�AUd J���P�z
+-�7f�߱�"u�hP�a
+-Z�2�Qt>��>��k��p��$U1��V��_n �x��r��0��R��%��ߡ鯸U
+-Z�0$(�>���_W<+���fp=t^���p��xb���<��ifz{�d`����d_	I�������b���d��(����&ȕp��%?�3!�����BLɞ�&6�������n����Z���CL~?�z�toy��u��쩐��I�X����
+-�s��I�{W{����M,`t��I+���ܤ��8��>��rf*�Z	�<x��a��03�K�_P���G%;�Nwug]��=6�� u���[�>�cS��7-fw`�Q)y3�a7J#ꐊ�o���b�]4k��X�_,䌗'��2>D�L��
+-;�2ݜi΄�i���w ���BZ�@E��+Y���
+-������ȡ�V�k���i ��yW����~TS�h���t��?�N���NR�Ca\�,o���`F�ʜ.�� r7�]���mV�[�Qh�v��{������"��&g���ǂ��އu�
+-Ϛ[�F�^�ׅ�3�d1�WK�̦�+�\��/�%I�[����F:�s��Y��P�z���Y%/3	�%qő��"���,��w�	�vŶ8��dO�$U��,�r(����<*�	�] ��>���&��k��{���-[^0�EH���ܦ!��;a�Ƕ�t��A��>�`�*;ꎱߖk���E�Pb&���T�D9YQ�s0q�]'�,��eT�~VǷV�S�����g%.�oB<��Ix�b�'����K�o>�Z�z��
+-F�P�%�pB�o��_,_�Z�h��>1I
+-�y�;j�
+-~ք�y�}�z�"���Z�HU�5�%�m��]���'��e!������E�mn�R�.���"�Boe �x΁ ȌL�F�j�v�;"!�P�XG�V���t�1=
+-vL�/'���#����4o@fG���vu���*����*.kr�
+-��/e���k�w5��p��������:=�PZ������α/w�//�H6O1���q�42u~����w���*��ق�	@_��Z]���2�Z
+-�4��%r��������u�-2�Snȃ]%���̒e�q�:6晙�l��2����m��a@Cn����e��k;2K���O��k
+-/bF�ZzO�s�_c��I�s���A����}��J��cn����J�,��+�4g^@Z{�J�&b���Id��H�w�/	����a��xON���+�Lے��|�Z>(iD�w�l��6m�����F�Cb����r�hC;�	.�]�����.� [f|�]usR�v�uڜ��	�}L���c���A�Խ���� SR���B
+-ky}�.F�E��Y��գal8�I�c3 :R�O�i��N�e,�h�λ
+-/%1m���KF��p�Fؖ=璀�pYD �*^�J��q�ۍ����ƀ���`dB�[]���5���W�����x�ڇ�������aY���վ��!� f�^��5�Ǿa&��O̦��(��l�i������ҩ����$Z��^������EC��~��Բ�����3�:�Y�?ſ�^�!�T�;ӯe"�Hr�\K�w��ɘ�Z2�Ӱ�+���v�-Ԥ��Ta.�e8�V'�9���Si*�<N��ڏG����h�������'x_/�u %Uj�D��� -���O�/!��
+-�YEw��ۨ��J��3�x�p>�X���˞�FPb�I�[��$���c��[� 
+-�a��U�x[����ٲr�
+-���륗a��v��h���7gE�O��l�����d�3>M߶;1�mj�)H��L�ڰ��2��c����"0�4�I61y�#�~+*��&gڠ��Rb�b�p��ꑿK�Kr��	:a0�����w6���;/6���6��g�B���-��[�'.�4˃��b�"���k7C7C����L��~�I0�ߨ��/�ÓR���Il8I߿��_�WY�[
+-v�ڻ~5�'�?����6�_F���fX�2.6��Υn�����T���&�X,�c�,��'�I����WH{!
+-~<��.�6�\@'��>�p�݂#�� �ѓ���"�����B;�� ּys���ӟɀC󒨢{�2|{��I���5�Nq
+-�٠�j�>
+-Y�`5�Wt�j�,N�!ar,s��Dl¦.Q�`�?=�+?��T��y�c��&�'棫�Db��T|f��X��-1R��+�ͣ �4��_y4�AK�Y�wB����Yu�oF'y���?pwIa��4kÄ�Tp������"�F���7~B7�n�ՀͼUt /(�b��}p���ظg���Q"��R{>t����3����K_�0�v�y��	�;1A70�, ��OD���$u���
+-����{�ߐP�����UG�����}������|�� B��u�J"$�H��V �f�E}�}΂�
+-lP8�%ߠ�7�jb�H$;��
+-ҳG���'�~\����R6al�Ǒ���S�=t۱Տ�_�������T�`2U���p\��e�����S������OI��q��v��`�,-Ĝ�	�/�'��< e#G,>)o�N�*�+��c����L��l�����R��߫4�ɖ���>��,�wj�z�>�E7�!��uP� d���:%�^���Z�А�@c_9$q�W�WC�?��EL_�J'Z�!K�{L$Yj)�$��#*�.�蕫�[�Z�[*h�4���T�z�'�s'���%U\P�
+-�\�T�:���������'�a�Q�r>d����u�H)���^����oCpW��nI �B,{�q~G��кr�.M^1�=dzt �����G�,��M�tᖀ�:�`��"���ZH@*��]�a�)�sb�")q��ըH��RgMB�r<c i�|U��hv1�̎eQO@R1�]�.Z�S/�H?Y�'y�$
+-��3���xR�1��K@�I������8����'��j����i��M�қ�dg+2t��T��Pt�7ή��Z�1Ц�(�\�\�k��*�4%�V~��8�Ɖ���Oǀ��+����g:���sL�M �r��`�2���X#Q�����>�ɀ]�*Y�yd�Si)�Z�g��@�Te�k�I�n\T:�' �J����<�P�VDdO	�&�>X���OL-��q&S(˚����)K)Fi"K �����otdx���2hQ�_ Ț��@���
+-o���@�L(��0Ӳ�o���wk]�#�cv��Ԭg�'zIvu,��ގ.0�X��f7;Z7]4o�m��$!Z1Ƴ�9o
+-�!O��%<�?ln���0k����������/֭��{o������Ξ Ѓ�9v[
+-��3q>|y�Q��t5�b�0�'�7q-���(��d��y �]�q]��J�=�;���x���B!�&^"�P|�9R]�$<9��ʄ�ywf��˽HsE���vb�7�FG�X��r�R$W�����%2����|g���a�HZ���~԰$g��\y�r�:�n�g��닙A�$�Ⱥ��ܺ����A;wa��H���T;�_���|���x�|����\Eewń��y�[Qas�MT�Q�t�m˸��\8�on�(�Ee�����KS~ j�9tT#�� FTYl�
+-���t_�RX�9zXOP�	ePa�6�"
+-S$1�N��
+-�m�d��
+-lQk�t6�p��!��t5�zl�weK�v��2��.E�(51^�8�S�)�"N�-ǜ�4�sbmc���7�^�:�.�wwBfaX������Un��T�gQ��8Rs�zazm^����h��#�3	�.�a�xA�`|"�gL�Im�V ��\3��6��|����"�HՎw�P�<;0�#�B�.��5��դ��$��3Ҽ#�?��E���*@��E�kt��4�ƈ$�"��X�]�O	,����߱O�`T��"�I�� ���T�B��E]n%>
+-���u�
+- �V<@��i���4�k(C4q�=&�9va�/5�n�	yp�O|y��Jb�P𭃬V
+-i"�����k�t������Gr�m�l����ͩGmY���L;�Яזq���e
+-��K�A[�$|�<Mh��X�|��г��Tr��D��
+-�J�yQ@��PM4޲m����^8���|�X�!
+-~d�`EB��f�3��ąr+��yQ���W�@��pމ�e��'��\w�@o�)�6�L [%뙈B�ƼI6�U�A伇��W�/��A�;�o-���m��L�T�kюɄа�)��M�%hй��b�y	���Cr��� ��d�����H���j�m,�(��X�k|�V�Q�v�4ڮ�ܝ��Y��ht���ڜF�b@=�����?*Mꮕ{�$
+-����_�[��|�Ň#�;��f/jԮ���sO#h��p:����B*�ZBK�Ļ��t�u?֑M �`t���)���yJ�wLḫyҵ2�f�� ){ܫ�]yq��fV^�nS,�k�)�34����f+I�2�ѷ�<`���3�J�&Y�%���7����kkMth�����U��Js��\E�g�u� Q^�FU�f���sR��p��4��ǃ�юv�����~?
+-��"����J}�V8�ym�%C�o-��cI	�1pDU|��^�ѥ����,��������sj&��+o&	iݕ�_%�p��X�@s�B!K\ܷeU��Z�,6�%�_�hϪ�O��X%l�]���w�S)�V�N$��=��(-�^���9�V�L��&����C�]�0�)"��?ӚI?�(�}k���!0�S�?�+yۏ���}�xk��P��(�Ev7Џ]pT��E��k/�݆��xe��㍪(H�[�N#OR�tGH�xF�'��xm�8X�Z� =����z{$Qi�� 3n�_�Z$6�F=�D��q-*Z\���*2[��j͏#|�/���׵��@'�d��Q1p�U�|��m)�eS��j$
+-�?R΋M7я�2��AVNx�j!~͏7ۍ���vt[��Na����P�Ⱥ�#��4��|����y�.�B0jv���/kF1�YM��?j@�`dT�~�!���r�|�۞�hQ�l���8=J0�1�a6�кunC�Ԇ�I�򋠐�o�j�;C��%;S�y�7c C|�/�W���@:��B$
+-���p���ҏ*n�0��Ȣ1[���ځc��A�6��aP��
+-Y/*��2o��w܈���'�t��r��A�8��Җ ��[�ug8[�۫�yQ@�H�gs�y�J�4_����0���8�G@�@�z����|��珝��zX$ �
+-`��L�Ts�����LVLG��K��$ac�(�p���V�������B�Ʈ�$�����&J�M���i¾��QA��*3�H*�#�m�
+-�V޻��u�}:���WF	�ˆ��&���48��~>s]���=������`W��"KVn��w���t�i!�O&Z�/0�A?.�S9�Ő������D��P��Kz�6�E�>e��0�-���k��
+-�毛�e�Y��vA��}S�����ʅ0㇯��S��R&��m�j�KbzU����iT�/z��ﱕ��u&;U�2{�uw,��2��\]����*��ݞ��(-J��C}5"����_��|S]�Ǚ>nQ�� �ŉI��q��t'f��(��2 �<Ӷ��(�LLwY�Ph�Bn*;7�����YV[?q�ǝ
+-%<�)�aVzL�Rp�3q\���.(�C'	f�g#��$fJ��u�����	��璼f���б�$+���\[��.n:5��=T���@w�ܻH��)��E`�fN�y���wZs�(��� vs~��G&�����)Dlk��u���+$њ��ʗ͹M�}h�������Ѳ��V���i��7~�\g�B��i�u\�S@��
+-0��V�:�֔�V�/�1��Ж��)�JB���=V��#��;������qid� �5�C�A!�vn>���*� ��8U���F�SrE篩e�}�C@dп�ǜ���w!�����E�+�5�!Dk����$D��wŽ;���o,u�=���3�#�nM����Y߳��
+-����X���F�
+-�+������l
+-��en��G�*��M2{�}�3��^�V7J��+o �
+-�媧�wZs�SG�SN�%���9����'�u�!�5.�;��jZa��e��s�e�A���w>�V�����hgY@jm��s�LL�KO
+-s�
+-��RjD)�	P8{�I\w~����>���Z��|��X�d /�K1sS�: Rd���!<,3����b��{]�$��i\�Ep�-a�M
+-Ѕ�)��Թ�V�	[\�|U�����a5��,������FiW�|�5�K�W	.�r��w��[�TW�R���Y��k�'�Xw��j���e]�g,��7��Ho2��$D��ۦ���������v� +X`yB<�Z#�-]��_6:[�8͵D�܂m�(�jAm�ïC�}5���yݞ��#������9]��mu
+-��pn�5�{S
+-9U�����+.��	,F��Pkk���L�EEld����8�~E��>�yW��LA�sV)⏘a��t���IT�Бi�1����|�#-�	/T�@%�i�+�|�u���
+-�d;5���t�M����j�kD81�aE]�f��*?k����w�!�0���cC��,c���*�s�������L��!wY{t�:�YS\A��_x)���L�Ku��Ҏ��?x�ҫ�ݥ*y�j4��+���<�q�;��B"pS3k�ٔ��{���q��t�+���-1��}�i�M��E8�3����o��_�,�V��h�h�8a�ز���1���ő{H�9�l�8%VڂZ"-��v��|�����&jv2�쑋�p���Ȯ}6	JU��&,q��0':����u"z���
+-�Z�'q��;8��}���xK��60�$��2fm���%��z(8(�u>�~-�����JA��b���,��OX���	WW�����a)��e�S!���J����w'���3vF!W��۹���j�o[�t͟?23c�Vp\]d]F*��Y���|CÐF�='C8��Nb�~�Rd{\
+-y�������)�Λ��/p�����x�jc��R��Zx.xh<t�d�CT���i���c��<���M(�z5��b'�4y���/^j��뉝�.�'P�X��>̈�l�a9`��x�
+-�@�l�|��?�]�S����>~w�D��4�}�
+-�*�L�~9��'�h/v��
+-`u�!�#FPk��M�Z$��}��O�d����I^I��B2���e�q���[!<���!BLN+�5F��j���|n��@��9�ӓ�q�E�y�|�����RD������<tp�Y�g�=[� Là"�X�y���;v;����Zn�.]Dz\�|��-}��� ���?�_��'�3f�&pK�%�������F&�S�lֶU��~yC)���j�l An��
+-\��ã�̿�J��ѧ��v�6G�I5�`�SM�#x'�o���%w j!p�r[�=����P��{���]�۝M�lQ����� %&���ݽ�R؄ R�¯=�����!F���e��Y� i����0�N_�!��0�b���\!�m@cw�0W���Bk>E����U��4�e��i��!�&/d{7������F�u����,���&�p$k�G�_�A��'<8���O�@͍��E0���-Nђ޻>�y��,�?�1��:�\K������X�)���$H"���-�>��#�?�;OnY�1���h��Ķ��h�x�z��E���	pu��KQ��]��.];�,�ؙ�Q�ߠK$ʋ<�ܒ��킁gW�N������tG��W��
+-�������>b���)���p��z�����(N�r��H�p�G�HP�K>���}a��mQ�5�����3�p��ԁ�sA�UyS��I��U�u�Bi���:�@2N3W�gK�H����,��C6�x_7S��R�žm(<��e��]��K�������2���>��S1r4�����	�P��v�>P�����v�N�P���zv+�X�l!����Bj?�?J��m�UC�`3c-�S.4adu5"H��p8����ZQ�3lT�����:h�%�AG-��u�3)���4��b�>A��ޠ�C�[����.>�r���E�U��L�z�(8������Jf���ke�t��ߙ�m9BB�X�م�`b�xB�W}^�@G�)��^�A�P8`&��p����iS�k���gc���C]�r���Op�?���UkbI���Љ����!��Ҳ�|�0?^[�#N��Е��9"�D��.}���˝�T����=�.�d��G�fnp�='���a
+-^�G��|�_�c��K*��X}٪u�O�E6+��ȅW�"5Ԙ�`i9 �@�'Du*x��B��-w�zv{�X'�vY�`�I�{��I
+-M���,�K��ZC�Jd�m���)3a��Bs{/�r��0����og�-����@!oJ�d�h$%|n���xE�2��#km�`��a�RJ'O�J��H>~��pe�?:�&$'�=я( e9��B����a#2Y���.�*�4^�3=.Z
+-.����\N�ue�ug
+-��z'RqAI*������\NE��CN��d����n�D�.�����3�4�cN���}�x�H�T��o��pu��s�#9����ftQD���(O� >%V�MuZ9êFl�`g�یZ
+-�+���i�ƌi�����LH���Y�.Qy��-f���-u���K���0��UO�b���󕻔��
+-&ʲ��;p�w�0�:���H5�N�ښ�%�|���ۊ��j8.�C?��P�ힽr����Χ��Ql���4>�h7�ԙI����k�(�g�a��n����p@n�wn��
+-s���"�!+WU���Q�Z�>����c�������c�M2g�7�&:��D�}G����o�cIҭ�J0zܟ۟��_ޒ���w�	߆����T��"�WG2����5�fr�9���}��iqC�|ӎ�:��Ks�D꥕�r��ƹ� ��9D�ǌ��I��-oR���a�}��.B���J/���������Vj��#�>�M1�f!�̔8g������b��:'z1=�{ٸ�z��pF{���.}�Ģ�ŌW���X��~ig|�j��}�J��)
+-V��A�-9R+59#�7��zh��f��npĸ��Z���*&LMT�#�r�-U�#&��ܮ
+-4;�E��,��:���?��ɹBs_w��b��BY�M�k�+�j];��b�Z���KP��Ş�;7K2D(#�W�7�SĻ�MӃv`Jw�:�eF7:�؞�C6+%��&�\Ȅja��1�̺������b¥P0���DjO�L�,;���*�q;1� �hZ�"���Jil��5R3��ߟYu\ē��o��;L�z����p��B�N��خ�i�Sx�+K>����G������s�jɵT�V�Z|�1[�Ɲ�&&����� N�@x����7��<j9b59���U ǽ^G��_u��yd���uױ:�E���l�4ѐ��f����=�_9�&
+-}N�kƃ����X\�|��Ky�Ep$��=��F��\Y��Nȩ�9B�g$�K�h���(%��gy���P)D�R��۴z�<U������2?f��gW�;x!@�Q�5,�ȧ���9>��kR^��	T�p�՘D�b�"w`��V��x�"�U1�#��tpF�sC�6�/K�F���[�A����`ԛ���ٚ�]��p� �;t���c80{,�NЗO�0c;����G0©�����rj#w-[҉ 2a*<O�Ě�����WՀ'̰�����~�>m���ʗa'�
+-f�_征9`� �"
+-�1k�Z���h��aZr�L\
+-�Jd��U�9��qV-�W6���Tω���` V��32��g�h��4(�ي� ��:72E�},]�̑������/U���[k(�]����x���&�vƫiռIv�ԇ���G#�=��y�:ѠS���h��$�6�G�J͎�a��xrh� �?f��_�!�x���M]@J$�ĉ�B�&|�Va\J��\b������u���q�^����q9|8���7���5���_-:W���hp8�B�%�P���ܐk͈�c��4��)`�ou�s��ms-���WE��5��zvߊ[}���=Qj�暑	t��7���t�H�����J���w�D8�{u�%�/t~��=��DQ.F��7�ފ��:�`�%ya���wV.����u!ؐ��%�"g:C�kĶ���sC!5\Fh:Q�!$�q�ǒӥ�7������"W�b��3^4�,�H��Q�P"�o�\U��w����0��1X1p��;3im��t��ðb��&�mZVQD�`��O*�����*JW �l�	~�q�)R�>���ޕ�3��X��O�d����'���*F�+�q��W-vE��?��Ǭ}���8�}fnmEH��VL��q��p��R�N�4��EpB�v���̮��M���E��W8�0��FM�x*yvɵ�↹��&��Pc���I�T�
+-+��ڽ��w���г�X�������}:�8)�e��_|��E��^���kľ���o�P�RM3�1���e�������S��a�vL�H��ݔ]�(t�-�xn�y��������a�|%p�`2	@]7�����WX8
+-���a�/E�̻�{z�ãn8�^M��(rs^��(�`���] 1�!��xPT���Yo�c7���?�+d{��B!�V�oc0 ���t�&�_ԃ�$W�)I�(Ý)m���ۛ�06E�N�XZN<�Y���3�Uo0��6t��b�\Tqk��f��L˒���wCs�����q�PO���&M�%�Y��԰ؘ%�{� Z�_w;�������̗Z�S�7)sy ��h�ا3��]��64�w=}���2�*�2$sOC�i#�|RLJ��V֋D����%�`��B�;�  
+\ No newline at end of file
+diff --git vendor/composer/autoload_static.php vendor/composer/autoload_static.php
+diff --git vendor/composer/autoload_classmap.php vendor/composer/autoload_classmap.php
+diff --git vendor/autoload.php vendor/autoload.php
+diff --git vendor/composer/autoload_namespaces.php vendor/composer/autoload_namespaces.php
+diff --git vendor/composer/LICENSE vendor/composer/LICENSE
+diff --git vendor/composer/ClassLoader.php vendor/composer/ClassLoader.php
+diff --git vendor/composer/autoload_files.php vendor/composer/autoload_files.php
+diff --git vendor/composer/autoload_psr4.php vendor/composer/autoload_psr4.php
+diff --git vendor/composer/autoload_real.php vendor/composer/autoload_real.php
+diff --git vendor/composer/installed.json vendor/composer/installed.json
